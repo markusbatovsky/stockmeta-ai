@@ -1159,7 +1159,7 @@
         </div>
         <div class="stat-card">
           <div class="stat-icon amber">⏳</div>
-          <div><div class="stat-value" id="statProcessing">—</div><div class="stat-label">Spracovávajú se</div></div>
+          <div><div class="stat-value" id="statProcessing">—</div><div class="stat-label">Spracovávajú sa</div></div>
         </div>
         <div class="stat-card">
           <div class="stat-icon cyan">🖼️</div>
@@ -1228,7 +1228,7 @@
       <div class="hints-panel">
         <h3 style="margin-bottom:16px">🔌 Pripojenie k backendu</h3>
         <div class="hints-grid">
-    2     <div class="hint-field" style="grid-column: 1/-1">
+          <div class="hint-field" style="grid-column: 1/-1">
             <label>URL backendu (FastAPI)</label>
             <input type="text" id="apiUrlFull" value="http://localhost:8000" placeholder="http://localhost:8000" oninput="document.getElementById('apiUrlInput').value=this.value; saveSettings()" />
           </div>
@@ -1279,7 +1279,7 @@
 // ─────────────────────────────────────────────
 // Config & State
 // ─────────────────────────────────────────────
-let API_URL = localStorage.getItem('apiUrl') || 'http://localhost:8000';
+let API_URL = localStorage.getItem('apiUrl') || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8000' : window.location.origin);
 let pendingFiles = [];
 let assets = [];
 let pollingInterval = null;
@@ -1290,7 +1290,7 @@ document.getElementById('apiUrlInput').value = API_URL;
 document.getElementById('apiUrlFull') && (document.getElementById('apiUrlFull').value = API_URL);
 
 function saveSettings() {
-  API_URL = document.getElementById('apiUrlInput').value || 'http://localhost:8000';
+  API_URL = document.getElementById('apiUrlInput').value || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:8000' : window.location.origin);
   if (document.getElementById('apiUrlFull')) document.getElementById('apiUrlFull').value = API_URL;
   localStorage.setItem('apiUrl', API_URL);
 }
@@ -1437,7 +1437,7 @@ async function startUpload() {
   }
 
   btn.disabled = false;
-  btn.textContent = '⚡ Spustiť analízu';
+  btn.textContent = '⚡ Spustiť analýzu';
 
   if (success > 0) {
     toast(`✅ ${success} súborov nahraných — AI generuje metadata...`, 'success');
