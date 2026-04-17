@@ -1,5 +1,5 @@
 """
-server.py  â  StockMeta AI  â  Standalone server (no Docker required)
+server.py  Ã¢ÂÂ  StockMeta AI  Ã¢ÂÂ  Standalone server (no Docker required)
 ----------------------------------------------------------------------
 Database  : SQLite (built-in, zero setup)
 AI        : Google Gemini 2.0 Flash (free tier)
@@ -145,7 +145,7 @@ async def _analyze_and_save(asset_id: str, image_path: str, hints: dict | None):
         if not path.exists():
             raise FileNotFoundError(f"File not found: {image_path}")
 
-        img = PILImage.open(str(path))
+        img = PILImage.open(str(path)).convert("RGB")
 
         hint_text = ""
         if hints:
@@ -161,7 +161,7 @@ async def _analyze_and_save(asset_id: str, image_path: str, hints: dict | None):
             if OPENAI_API_KEY:
                 import base64 as _b64, io as _io
                 buf = _io.BytesIO()
-                img.save(buf, format="JPEG")
+                img.convert("RGB").save(buf, format="JPEG")
                 img_b64 = _b64.b64encode(buf.getvalue()).decode()
                 rsp = _client.chat.completions.create(
                     model=_model,
