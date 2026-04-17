@@ -1,5 +1,5 @@
 """
-server.py  —  StockMeta AI  —  Standalone server (no Docker required)
+server.py  â  StockMeta AI  â  Standalone server (no Docker required)
 ----------------------------------------------------------------------
 Database  : SQLite (built-in, zero setup)
 AI        : Google Gemini 2.0 Flash (free tier)
@@ -33,7 +33,8 @@ FRONTEND   = BASE_DIR / "frontend"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
-AI_MODEL       = os.getenv("AI_MODEL", "gemini-2.0-flash")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+AI_MODEL       = os.getenv("AI_MODEL", "")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 log = logging.getLogger("stockmeta")
@@ -126,14 +127,19 @@ async def _analyze_and_save(asset_id: str, image_path: str, hints: dict | None):
         await db.execute("UPDATE assets SET status='processing', updated_at=datetime('now') WHERE id=?", (asset_id,))
         await db.commit()
 
-        if not GOOGLE_API_KEY:
-            raise ValueError("GOOGLE_API_KEY not set")
+        if not OPENAI_API_KEY and not GOOGLE_API_KEY:
+            raise ValueError("Neither OPENAI_API_KEY nor GOOGLE_API_KEY is set")
 
-        import google.generativeai as genai
         from PIL import Image as PILImage
 
-        genai.configure(api_key=GOOGLE_API_KEY)
-        model = genai.GenerativeModel(AI_MODEL)
+        if OPENAI_API_KEY:
+            import openai as _openai
+            _client = _openai.OpenAI(api_key=OPENAI_API_KEY)
+            _model = AI_MODEL or "gpt-4o"
+        else:
+            import google.generativeai as genai
+            genai.configure(api_key=GOOGLE_API_KEY)
+            _gemini = genai.GenerativeModel(AI_MODEL or "gemini-2.0-flash")
 
         path = Path(image_path)
         if not path.exists():
@@ -151,9 +157,24 @@ async def _analyze_and_save(asset_id: str, image_path: str, hints: dict | None):
             if parts:
                 hint_text = "\n\nPhotographer context:\n" + "\n".join(parts)
 
-        def call_gemini(prompt: str) -> dict:
-            response = model.generate_content([prompt + hint_text, img])
-            raw = response.text.strip()
+        def call_ai(prompt: str) -> dict:
+            if OPENAI_API_KEY:
+                import base64 as _b64, io as _io
+                buf = _io.BytesIO()
+                img.save(buf, format="JPEG")
+                img_b64 = _b64.b64encode(buf.getvalue()).decode()
+                rsp = _client.chat.completions.create(
+                    model=_model,
+                    messages=[{"role":"user","content":[
+                        {"type":"text","text":prompt+hint_text},
+                        {"type":"image_url","image_url":{"url":f"data:image/jpeg;base64,{img_b64}"}}
+                    ]}],
+                    max_tokens=1024,
+                )
+                raw = rsp.choices[0].message.content.strip()
+            else:
+                response = _gemini.generate_content([prompt + hint_text, img])
+                raw = response.text.strip()
             if "```" in raw:
                 parts = raw.split("```")
                 raw = parts[1] if len(parts) > 1 else raw
@@ -161,8 +182,8 @@ async def _analyze_and_save(asset_id: str, image_path: str, hints: dict | None):
                     raw = raw[4:]
             return json.loads(raw.strip())
 
-        adobe_data = call_gemini(ADOBE_PROMPT)
-        ss_data    = call_gemini(SHUTTERSTOCK_PROMPT)
+        adobe_data = call_ai(ADOBE_PROMPT)
+        ss_data    = call_ai(SHUTTERSTOCK_PROMPT)
 
         await db.execute("UPDATE metadata_outputs SET is_active=0 WHERE asset_id=?", (asset_id,))
 
@@ -398,8 +419,10 @@ async def export_csv(platform: str = Query(..., pattern="^(adobe|shutterstock)$"
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "2.0.0", "ai_provider": "Google Gemini",
-            "ai_model": AI_MODEL, "ai_configured": bool(GOOGLE_API_KEY)}
+    provider = "OpenAI" if OPENAI_API_KEY else "Google Gemini"
+    model_name = AI_MODEL or ("gpt-4o" if OPENAI_API_KEY else "gemini-2.0-flash")
+    return {"status": "ok", "version": "2.0.0", "ai_provider": provider,
+            "ai_model": model_name, "ai_configured": bool(OPENAI_API_KEY or GOOGLE_API_KEY)}
 
 @app.get("/", include_in_schema=False)
 async def serve_index():
