@@ -281,6 +281,32 @@ def extract_palette(path: Path, n_colors: int = 6) -> list:
         return []
 
 
+# -- Video frame extraction ----------------------------------------------------
+def extract_video_frame(video_path: str) -> str | None:
+    """Extract middle frame from video using ffmpeg. Returns temp JPEG path or None."""
+    import subprocess, tempfile
+    try:
+        probe = subprocess.run(
+            ['ffprobe', '-v', 'quiet', '-show_entries', 'format=duration',
+             '-of', 'default=noprint_wrappers=1:nokey=1', str(video_path)],
+            capture_output=True, text=True, timeout=30
+        )
+        duration = float(probe.stdout.strip())
+        midpoint = max(0.0, duration / 2.0)
+        tmp = tempfile.NamedTemporaryFile(suffix='.jpg', delete=False)
+        tmp.close()
+        subprocess.run(
+            ['ffmpeg', '-y', '-ss', str(midpoint), '-i', str(video_path),
+             '-vframes', '1', '-q:v', '2', tmp.name],
+            capture_output=True, timeout=60, check=True
+        )
+        log.info("Video frame extracted at %.1fs from %s", midpoint, video_path)
+        return tmp.name
+    except Exception as e:
+        log.error("Video frame extraction failed: %s", e)
+        return None
+
+
 # -- AI analysis ---------------------------------------------------------------
 def analyze_image_sync(asset_id: str, image_path: str, hints: dict | None):
     loop = asyncio.new_event_loop()
@@ -292,6 +318,7 @@ def analyze_image_sync(asset_id: str, image_path: str, hints: dict | None):
 
 async def _analyze_and_save(asset_id: str, image_path: str, hints: dict | None):
     db = await get_db()
+    video_frame_path = None
     try:
         await db.execute("UPDATE assets SET status='processing', updated_at=datetime('now') WHERE id=?", (asset_id,))
         await db.commit()
@@ -301,11 +328,21 @@ async def _analyze_and_save(asset_id: str, image_path: str, hints: dict | None):
         if not path.exists():
             raise FileNotFoundError(f"File not found: {image_path}")
 
-        img = PILImage.open(str(path)).convert("RGB")
+        # For video files, extract middle frame for analysis
+        is_video = path.suffix.lower() in {'.mp4', '.mov', '.avi', '.mkv', '.webm'}
+        if is_video:
+            video_frame_path = extract_video_frame(image_path)
+            if not video_frame_path:
+                raise ValueError("Could not extract frame from video. Is ffmpeg installed?")
+            analysis_path = Path(video_frame_path)
+        else:
+            analysis_path = path
+
+        img = PILImage.open(str(analysis_path)).convert("RGB")
 
         # Extract EXIF and color palette
-        exif_data = extract_exif(path)
-        color_palette = extract_palette(path)
+        exif_data = extract_exif(analysis_path) if not is_video else {}
+        color_palette = extract_palette(analysis_path)
 
         # Build prompt: brief goes FIRST as mandatory override, other context appended after
         brief_block = ""
@@ -334,7 +371,10 @@ async def _analyze_and_save(asset_id: str, image_path: str, hints: dict | None):
                 context_parts.append(f"Usage intent: {hints['intent']}")
 
         context_text = ("\n\n---\nAdditional context:\n" + "\n".join(context_parts)) if context_parts else ""
-        prompt = brief_block + GETTY_PROMPT + context_text
+        video_note = ("NOTE: This is a frame extracted from the MIDDLE of a video clip. "
+                      "Generate metadata suitable for stock footage/video content. "
+                      "Describe the scene as motion/action, not a static photograph.\n\n") if is_video else ""
+        prompt = video_note + brief_block + GETTY_PROMPT + context_text
 
         # Call AI
         if OPENAI_API_KEY:
@@ -389,6 +429,12 @@ async def _analyze_and_save(asset_id: str, image_path: str, hints: dict | None):
         await db.commit()
     finally:
         await db.close()
+        # Clean up extracted video frame temp file
+        if video_frame_path:
+            try:
+                Path(video_frame_path).unlink(missing_ok=True)
+            except Exception:
+                pass
 
 
 # -- FastAPI app ----------------------------------------------------------------
