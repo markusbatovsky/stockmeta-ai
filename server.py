@@ -471,7 +471,7 @@ async def upload_asset(
     t.start()
 
     return {
-asset_id": asset_id, "filename": file.filename, "asset_type": asset_type,
+        "asset_id": asset_id, "filename": file.filename, "asset_type": asset_type,
         "status": "ingested", "message": "File accepted. AI generating metadata...",
         "estimated_processing_seconds": 20
     }
@@ -810,4 +810,3 @@ async def startup():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("server:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)), reload=False)
-
