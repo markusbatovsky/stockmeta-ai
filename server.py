@@ -219,18 +219,47 @@ def extract_exif(path: Path) -> dict:
 
 
 # -- Color palette extraction --------------------------------------------------
+def _rgb_to_hsv(r: int, g: int, b: int):
+    r_, g_, b_ = r / 255.0, g / 255.0, b / 255.0
+    cmax = max(r_, g_, b_)
+    cmin = min(r_, g_, b_)
+    delta = cmax - cmin
+    s = 0 if cmax == 0 else delta / cmax
+    return cmax, s  # return value (brightness) and saturation
+
+
 def extract_palette(path: Path, n_colors: int = 6) -> list:
+    """Extract dominant colors, filtering out near-black/near-white background pixels
+    and sorting by saturation so studio backgrounds don't dominate."""
     try:
         from PIL import Image as PILImage
         img = PILImage.open(str(path)).convert("RGB")
-        img.thumbnail((150, 150))
-        colors = img.getcolors(maxcolors=150*150)
+        img.thumbnail((200, 200))
+        colors = img.getcolors(maxcolors=200 * 200)
         if not colors:
             return []
-        colors.sort(key=lambda x: -x[0])
-        # deduplicate similar colors
-        palette = []
+
+        # Filter: skip near-black (<30 avg) and near-white (>220 avg) pixels
+        # which are typically studio backgrounds
+        filtered = []
         for count, rgb in colors:
+            r, g, b = rgb
+            avg = (r + g + b) / 3
+            if avg < 28 or avg > 222:
+                continue
+            v, s = _rgb_to_hsv(r, g, b)
+            filtered.append((count, rgb, s, v))
+
+        # If everything was filtered (e.g. pure B&W photo) fall back to all colors
+        if not filtered:
+            filtered = [(count, rgb, *_rgb_to_hsv(*rgb)) for count, rgb in colors
+                        if (sum(rgb) / 3) >= 28]
+
+        # Sort: higher saturation first, then by count
+        filtered.sort(key=lambda x: (-x[2], -x[0]))
+
+        palette = []
+        for count, rgb, s, v in filtered:
             r, g, b = rgb
             hex_color = f"#{r:02x}{g:02x}{b:02x}"
             # skip if too similar to existing
@@ -239,7 +268,7 @@ def extract_palette(path: Path, n_colors: int = 6) -> list:
                 er = int(existing[1:3], 16)
                 eg = int(existing[3:5], 16)
                 eb = int(existing[5:7], 16)
-                if abs(r-er) + abs(g-eg) + abs(b-eb) < 60:
+                if abs(r - er) + abs(g - eg) + abs(b - eb) < 55:
                     duplicate = True
                     break
             if not duplicate:
@@ -278,24 +307,34 @@ async def _analyze_and_save(asset_id: str, image_path: str, hints: dict | None):
         exif_data = extract_exif(path)
         color_palette = extract_palette(path)
 
-        # Build hint text (brief + collection brief + metadata)
-        hint_parts = []
-        if hints:
-            if hints.get("brief"):
-                hint_parts.append(f"Photographer brief / custom instructions:\n{hints['brief']}")
-            if hints.get("collection_brief"):
-                hint_parts.append(f"Collection brief:\n{hints['collection_brief']}")
-            if hints.get("location"):
-                hint_parts.append(f"Location: {hints['location']}")
-            if hints.get("shoot_type"):
-                hint_parts.append(f"Shoot type: {hints['shoot_type']}")
-            if hints.get("people_count") is not None:
-                hint_parts.append(f"People count: {hints['people_count']}")
-            if hints.get("intent"):
-                hint_parts.append(f"Usage intent: {hints['intent']}")
-        hint_text = ("\n\n---\nAdditional context:\n" + "\n".join(hint_parts)) if hint_parts else ""
+        # Build prompt: brief goes FIRST as mandatory override, other context appended after
+        brief_block = ""
+        context_parts = []
 
-        prompt = GETTY_PROMPT + hint_text
+        if hints:
+            b = hints.get("brief", "").strip()
+            cb = hints.get("collection_brief", "").strip()
+            combined_brief = "\n".join(filter(None, [b, cb]))
+            if combined_brief:
+                brief_block = (
+                    "=== MANDATORY PHOTOGRAPHER BRIEF ===\n"
+                    "The photographer provided the following instructions. You MUST incorporate "
+                    "this theme/context heavily into the title, description, and especially keywords. "
+                    "This brief defines the commercial angle - do not ignore it.\n\n"
+                    f"BRIEF: {combined_brief}\n"
+                    "=== END BRIEF ===\n\n"
+                )
+            if hints.get("location"):
+                context_parts.append(f"Location: {hints['location']}")
+            if hints.get("shoot_type"):
+                context_parts.append(f"Shoot type: {hints['shoot_type']}")
+            if hints.get("people_count") is not None:
+                context_parts.append(f"People count: {hints['people_count']}")
+            if hints.get("intent"):
+                context_parts.append(f"Usage intent: {hints['intent']}")
+
+        context_text = ("\n\n---\nAdditional context:\n" + "\n".join(context_parts)) if context_parts else ""
+        prompt = brief_block + GETTY_PROMPT + context_text
 
         # Call AI
         if OPENAI_API_KEY:
@@ -432,7 +471,7 @@ async def upload_asset(
     t.start()
 
     return {
-        "asset_id": asset_id, "filename": file.filename, "asset_type": asset_type,
+asset_id": asset_id, "filename": file.filename, "asset_type": asset_type,
         "status": "ingested", "message": "File accepted. AI generating metadata...",
         "estimated_processing_seconds": 20
     }
