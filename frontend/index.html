@@ -434,7 +434,7 @@ function setupDragDrop() {
 }
 
 function handleFiles(files) {
-  if (\!files || files.length === 0) return;
+  if (!files || files.length === 0) return;
   bulkQueue = [];
   for (const f of files) bulkQueue.push({ file: f, assetId: null, status: 'pending', thumb: null });
   renderBulkQueue();
@@ -463,7 +463,7 @@ function renderBulkQueue() {
       <span class="bulk-item-status ${item.status}">${statusLabel(item.status)}</span>
     </div>`).join('');
   bulkQueue.forEach((item, i) => {
-    if (\!item.thumb) {
+    if (!item.thumb) {
       const reader = new FileReader();
       reader.onload = e => {
         item.thumb = e.target.result;
@@ -514,7 +514,7 @@ async function uploadFile(file, brief, collId) {
   if (brief) fd.append('hints', JSON.stringify({ brief }));
   if (collId) fd.append('collection_id', collId);
   const r = await fetch(`${API_URL}/api/v1/assets/upload`, { method: 'POST', body: fd });
-  if (\!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.detail || `Upload failed (${r.status})`); }
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.detail || `Upload failed (${r.status})`); }
   const d = await r.json();
   return d.asset_id;
 }
@@ -524,7 +524,7 @@ function loadResultImage(file) {
   reader.onload = e => {
     const wrap = document.getElementById('resultImageWrap');
     let img = wrap.querySelector('img.result-img');
-    if (\!img) {
+    if (!img) {
       img = document.createElement('img'); img.className = 'result-img';
       img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
       wrap.querySelector('.result-image-placeholder').style.display = 'none';
@@ -553,7 +553,7 @@ function startPolling(assetId) {
 async function pollAsset(assetId) {
   try {
     const r = await fetch(`${API_URL}/api/v1/assets/${assetId}`);
-    if (\!r.ok) return;
+    if (!r.ok) return;
     const asset = await r.json();
     if (asset.status === 'complete') {
       clearInterval(pollTimer); showProcessing(false); setGenerating(false);
@@ -569,7 +569,7 @@ async function pollSilent(assetId, queueIdx) {
   const timer = setInterval(async () => {
     try {
       const r = await fetch(`${API_URL}/api/v1/assets/${assetId}`);
-      if (\!r.ok) return;
+      if (!r.ok) return;
       const asset = await r.json();
       if (asset.status === 'complete' || asset.status === 'error') {
         clearInterval(timer); updateBulkStatus(queueIdx, asset.status); await loadAssets();
@@ -582,10 +582,10 @@ async function pollSilent(assetId, queueIdx) {
 async function loadMetadata(assetId, asset) {
   try {
     const r = await fetch(`${API_URL}/api/v1/metadata/${assetId}`);
-    if (\!r.ok) return;
+    if (!r.ok) return;
     const data = await r.json();
     const g = data.getty;
-    if (\!g) return;
+    if (!g) return;
 
     document.getElementById('metaPlaceholder').style.display = 'none';
     document.getElementById('metaBody').style.display = 'flex';
@@ -658,7 +658,7 @@ function renderEditableKeywords(kws) {
     del.addEventListener('mousedown', e => {
       e.preventDefault(); e.stopPropagation();
       const idx = currentKeywords.indexOf(chip.dataset.kw || k);
-      if (idx \!== -1) currentKeywords.splice(idx, 1);
+      if (idx !== -1) currentKeywords.splice(idx, 1);
       chip.remove();
       updateKwCount();
       markDirty();
@@ -679,9 +679,9 @@ function renderEditableKeywords(kws) {
       inp.focus(); inp.select();
       const commit = () => {
         const nv = inp.value.trim();
-        if (nv && nv \!== oldVal) {
+        if (nv && nv !== oldVal) {
           const idx = currentKeywords.indexOf(oldVal);
-          if (idx \!== -1) currentKeywords[idx] = nv;
+          if (idx !== -1) currentKeywords[idx] = nv;
           chip.dataset.kw = nv;
           markDirty();
         }
@@ -702,7 +702,7 @@ function renderEditableKeywords(kws) {
 
   // SortableJS
   if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
-  if (typeof Sortable \!== 'undefined') {
+  if (typeof Sortable !== 'undefined') {
     sortableInstance = Sortable.create(wrap, {
       animation: 150,
       ghostClass: 'sortable-ghost',
@@ -735,7 +735,7 @@ function markDirty() {
 }
 
 async function saveEdits() {
-  if (\!currentAssetId) return;
+  if (!currentAssetId) return;
   const title = document.getElementById('metaTitle').textContent.trim();
   // Sync currentKeywords from DOM order (in case sortable moved things)
   const chips = [...document.querySelectorAll('#metaKeywords .chip')];
@@ -746,11 +746,11 @@ async function saveEdits() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, keywords_ranked: kws })
     });
-    if (\!r.ok) throw new Error();
+    if (!r.ok) throw new Error();
     isDirty = false;
     currentKeywords = kws;
     document.getElementById('saveBar').classList.remove('visible');
-    toast('Saved\!', 'success');
+    toast('Saved!', 'success');
   } catch(e) { toast('Save failed', 'error'); }
 }
 
@@ -758,7 +758,7 @@ async function saveEdits() {
 async function loadAssets() {
   try {
     const r = await fetch(`${API_URL}/api/v1/assets/?page_size=30`);
-    if (\!r.ok) return;
+    if (!r.ok) return;
     const data = await r.json();
     const items = data.items || [];
     completedCount = items.filter(a => a.status === 'complete').length;
@@ -785,11 +785,11 @@ function getExt(filename) {
 async function selectAsset(assetId) {
   currentAssetId = assetId;
   const r = await fetch(`${API_URL}/api/v1/assets/${assetId}`);
-  if (\!r.ok) return;
+  if (!r.ok) return;
   const asset = await r.json();
   const wrap = document.getElementById('resultImageWrap');
   let img = wrap.querySelector('img.result-img');
-  if (\!img) {
+  if (!img) {
     img = document.createElement('img'); img.className = 'result-img';
     img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
     wrap.querySelector('.result-image-placeholder').style.display = 'none';
@@ -820,7 +820,7 @@ function copyField(field) {
     const chips = document.querySelectorAll('#metaKeywords .chip');
     text = Array.from(chips).map(c => c.dataset.kw || c.querySelector('.chip-text')?.textContent || '').filter(Boolean).join(', ');
   }
-  if (\!text || text === '—') return;
+  if (!text || text === '—') return;
   copyText(text);
   event.target.closest('.btn-copy').classList.add('copied');
   setTimeout(() => event.target.closest('.btn-copy')?.classList.remove('copied'), 1500);
@@ -836,17 +836,17 @@ function copyAll() {
 }
 
 function copyText(text) {
-  navigator.clipboard.writeText(text).then(() => toast('Copied\!', 'success')).catch(() => {
+  navigator.clipboard.writeText(text).then(() => toast('Copied!', 'success')).catch(() => {
     const ta = document.createElement('textarea');
     ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
     document.body.appendChild(ta); ta.focus(); ta.select();
     document.execCommand('copy'); document.body.removeChild(ta);
-    toast('Copied\!', 'success');
+    toast('Copied!', 'success');
   });
 }
 
 async function regenerate() {
-  if (\!currentAssetId) return;
+  if (!currentAssetId) return;
   try {
     const r = await fetch(`${API_URL}/api/v1/metadata/${currentAssetId}/regenerate`, { method: 'POST' });
     if (r.ok) {
@@ -868,12 +868,12 @@ function updateExportBar(count) {
 async function exportCSV() {
   try {
     const r = await fetch(`${API_URL}/api/v1/export/csv`, { method: 'POST' });
-    if (\!r.ok) { toast('No data to export', 'error'); return; }
+    if (!r.ok) { toast('No data to export', 'error'); return; }
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `microstockplus_${Date.now()}.csv`;
     a.click(); URL.revokeObjectURL(url);
-    toast('CSV downloaded\!', 'success');
+    toast('CSV downloaded!', 'success');
   } catch(e) { toast('Export failed', 'error'); }
 }
 
@@ -881,7 +881,7 @@ async function exportCSV() {
 async function loadCollections() {
   try {
     const r = await fetch(`${API_URL}/api/v1/collections`);
-    if (\!r.ok) return;
+    if (!r.ok) return;
     const data = await r.json();
     collections = data.items || [];
     renderCollSelect(); renderCollList();
@@ -921,17 +921,17 @@ function selectColl(id) {
 async function createCollection() {
   const name = document.getElementById('newCollName').value.trim();
   const brief = document.getElementById('newCollBrief').value.trim();
-  if (\!name) { toast('Collection name is required', 'error'); return; }
+  if (!name) { toast('Collection name is required', 'error'); return; }
   try {
     const r = await fetch(`${API_URL}/api/v1/collections`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, brief })
     });
-    if (\!r.ok) throw new Error();
+    if (!r.ok) throw new Error();
     document.getElementById('newCollName').value = '';
     document.getElementById('newCollBrief').value = '';
     await loadCollections();
-    toast('Collection created\!', 'success');
+    toast('Collection created!', 'success');
   } catch(e) { toast('Failed to create collection', 'error'); }
 }
 
@@ -942,7 +942,7 @@ function promptDeleteColl(id, name) {
 }
 
 async function confirmDeleteColl() {
-  if (\!deleteCollId) return;
+  if (!deleteCollId) return;
   try {
     await fetch(`${API_URL}/api/v1/collections/${deleteCollId}`, { method: 'DELETE' });
     document.getElementById('delCollModal').classList.remove('open');
