@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<\!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -6,388 +6,170 @@
 <title>StockMeta AI — Getty Metadata Generator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <style>
-:root {
-  --bg: #F7F5F2;
-  --surface: #FFFFFF;
-  --border: #E8E3DC;
-  --border-light: #F0ECE6;
-  --text: #1C1917;
-  --text-secondary: #78716C;
-  --text-muted: #A8A29E;
-  --accent: #1C1917;
-  --accent-hover: #292524;
-  --success: #16A34A;
-  --success-bg: #F0FDF4;
-  --error: #DC2626;
-  --error-bg: #FEF2F2;
-  --warning: #D97706;
-  --warning-bg: #FFFBEB;
-  --processing-bg: #EFF6FF;
-  --processing: #2563EB;
-  --radius-sm: 8px;
-  --radius: 14px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow: 0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
-  --shadow-lg: 0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
-  --font: 'Inter', -apple-system, sans-serif;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: var(--font);
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* ── HEADER ── */
-.header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 100;
-}
-.header-inner {
-  max-width: 1160px; margin: 0 auto; padding: 0 24px;
-  height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
-}
-.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
-.logo-mark {
-  width: 32px; height: 32px; background: var(--accent); border-radius: var(--radius-sm);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; color: #fff; font-weight: 700; letter-spacing: -0.5px;
-}
-.logo-text { font-weight: 600; font-size: 15px; letter-spacing: -0.3px; }
-.logo-badge {
-  background: var(--bg); border: 1px solid var(--border);
-  color: var(--text-secondary); font-size: 11px; font-weight: 500;
-  padding: 2px 7px; border-radius: 20px; letter-spacing: 0.3px;
-}
-.header-actions { display: flex; align-items: center; gap: 8px; }
-.btn-ghost {
-  background: none; border: 1px solid var(--border); color: var(--text-secondary);
-  padding: 6px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500;
-  cursor: pointer; transition: all .15s; font-family: var(--font);
-  display: flex; align-items: center; gap: 6px;
-}
-.btn-ghost:hover { background: var(--bg); color: var(--text); border-color: #ccc; }
-.btn-icon {
-  background: none; border: 1px solid var(--border); color: var(--text-secondary);
-  width: 36px; height: 36px; border-radius: var(--radius-sm); font-size: 16px;
-  cursor: pointer; transition: all .15s; display: flex; align-items: center; justify-content: center;
-}
-.btn-icon:hover { background: var(--bg); color: var(--text); }
-.status-dot {
-  width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); display: inline-block;
-}
-.status-dot.online { background: var(--success); box-shadow: 0 0 0 2px #bbf7d0; }
-
-/* ── LAYOUT ── */
-.main {
-  max-width: 1160px; margin: 0 auto; padding: 28px 24px 64px;
-  display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start;
-}
-@media (max-width: 900px) {
-  .main { grid-template-columns: 1fr; }
-}
-
-/* ── PANEL ── */
-.panel {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm);
-}
-.panel-header {
-  padding: 18px 20px 14px; border-bottom: 1px solid var(--border-light);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.panel-title { font-size: 13px; font-weight: 600; letter-spacing: 0.05px; }
-.panel-body { padding: 20px; }
-
-/* ── UPLOAD ZONE ── */
-.upload-zone {
-  border: 2px dashed var(--border); border-radius: var(--radius);
-  background: var(--bg); cursor: pointer; transition: all .2s;
-  position: relative; overflow: hidden; aspect-ratio: 4/3;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-}
-.upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: #f3f1ee; }
-.upload-zone.has-image { border-style: solid; border-color: var(--border); }
-.upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
-.upload-icon { font-size: 28px; opacity: 0.5; }
-.upload-text { font-size: 13px; color: var(--text-secondary); font-weight: 500; text-align: center; }
-.upload-sub { font-size: 11px; color: var(--text-muted); }
-.preview-img {
-  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-}
-.preview-overlay {
-  position: absolute; inset: 0; background: rgba(0,0,0,0.45);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-  opacity: 0; transition: opacity .2s; color: white; font-size: 13px; font-weight: 500;
-}
-.upload-zone.has-image:hover .preview-overlay { opacity: 1; }
-.preview-overlay-icon { font-size: 22px; }
-.upload-zone.has-image input[type=file] { z-index: 2; }
-
-/* bulk queue */
-.bulk-queue {
-  margin-top: 10px; display: flex; flex-direction: column; gap: 6px;
-}
-.bulk-item {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--bg); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); padding: 7px 10px; font-size: 12px;
-}
-.bulk-item-thumb {
-  width: 32px; height: 32px; border-radius: 5px; object-fit: cover; flex-shrink: 0;
-}
-.bulk-item-name { flex: 1; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bulk-item-status { font-size: 11px; font-weight: 500; flex-shrink: 0; }
-.bulk-item-status.processing { color: var(--processing); }
-.bulk-item-status.complete { color: var(--success); }
-.bulk-item-status.error { color: var(--error); }
-.bulk-item-status.ingested { color: var(--text-muted); }
-
-/* ── FORM ELEMENTS ── */
-label.field-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px; letter-spacing: 0.05px; }
-textarea, select, input[type=text] {
-  width: 100%; background: var(--bg); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); padding: 10px 12px;
-  font-size: 13px; font-family: var(--font); color: var(--text);
-  resize: none; outline: none; transition: border-color .15s;
-}
-textarea:focus, select:focus, input[type=text]:focus { border-color: #a09890; }
-textarea { min-height: 72px; }
-
-/* ── SECTION DIVIDER ── */
-.section-gap { height: 16px; }
-
-/* ── GENERATE BUTTON ── */
-.btn-primary {
-  width: 100%; padding: 13px; background: var(--accent); color: white;
-  border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600;
-  cursor: pointer; transition: all .15s; font-family: var(--font);
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-}
-.btn-primary:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-.spinner {
-  width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── COLLECTIONS PANEL ── */
-.collections-list { display: flex; flex-direction: column; gap: 6px; }
-.coll-item {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 9px 12px; border-radius: var(--radius-sm); cursor: pointer;
-  border: 1px solid transparent; transition: all .15s;
-}
-.coll-item:hover { background: var(--bg); border-color: var(--border); }
-.coll-item.active { background: var(--accent); color: white; border-color: var(--accent); }
-.coll-item.active .coll-name { color: white; }
-.coll-item.active .coll-count { color: rgba(255,255,255,0.7); }
-.coll-name { font-size: 13px; font-weight: 500; }
-.coll-count { font-size: 11px; color: var(--text-muted); }
-.coll-none { font-size: 13px; color: var(--text-muted); text-align: center; padding: 12px 0; }
-
-/* ── HISTORY ── */
-.history-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.history-thumb {
-  aspect-ratio: 1; border-radius: var(--radius-sm); overflow: hidden;
-  position: relative; cursor: pointer; border: 2px solid transparent;
-  background: var(--bg); transition: all .15s;
-}
-.history-thumb:hover { border-color: #c9c3bb; transform: translateY(-1px); }
-.history-thumb.active { border-color: var(--accent); }
-.history-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.history-badge {
-  position: absolute; bottom: 4px; left: 4px; right: 4px;
-  font-size: 9px; font-weight: 700; text-align: center;
-  padding: 2px 4px; border-radius: 4px; letter-spacing: 0.5px;
-}
-.badge-complete { background: var(--success); color: white; }
-.badge-processing { background: var(--processing); color: white; }
-.badge-error { background: var(--error); color: white; }
-.badge-ingested { background: var(--text-muted); color: white; }
-.history-empty { font-size: 13px; color: var(--text-muted); text-align: center; padding: 20px 0; }
-
-/* ── RIGHT COLUMN ── */
-.right-col { display: flex; flex-direction: column; gap: 20px; }
-
-/* ── RESULT CARD ── */
-.result-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm);
-}
-.result-image-wrap {
-  width: 100%; aspect-ratio: 16/7; background: var(--bg);
-  position: relative; overflow: hidden;
-}
-.result-image-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.result-image-placeholder {
-  width: 100%; height: 100%; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 8px;
-  color: var(--text-muted); font-size: 13px;
-}
-.result-image-placeholder .ph-icon { font-size: 36px; opacity: 0.3; }
-.processing-overlay {
-  position: absolute; inset: 0; background: rgba(247,245,242,0.85);
-  display: none; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-}
-.processing-overlay.visible { display: flex; }
-.processing-spinner {
-  width: 36px; height: 36px; border: 3px solid var(--border);
-  border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite;
-}
-.processing-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
-
-/* ── METADATA SECTIONS ── */
-.meta-body { padding: 22px; display: flex; flex-direction: column; gap: 18px; }
-.meta-section {}
-.meta-section-header {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
-}
-.meta-section-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; }
-.meta-value {
-  font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.4;
-}
-.meta-desc {
-  font-size: 13px; color: var(--text-secondary); line-height: 1.6;
-}
-.meta-category {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--bg); border: 1px solid var(--border);
-  padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; color: var(--text-secondary);
-}
-
-/* keyword chips */
-.keywords-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip {
-  background: var(--bg); border: 1px solid var(--border);
-  padding: 4px 10px; border-radius: 20px;
-  font-size: 11px; font-weight: 600; color: var(--text-secondary);
-  text-transform: uppercase; letter-spacing: 0.4px; cursor: default;
-  transition: all .12s;
-}
-.chip:hover { background: var(--accent); color: white; border-color: var(--accent); }
-.chip.top { background: #1c191710; border-color: #1c191730; color: var(--text); }
-
+:root{--bg:#F7F5F2;--surface:#FFFFFF;--border:#E8E3DC;--border-light:#F0ECE6;--text:#1C1917;--text-secondary:#78716C;--text-muted:#A8A29E;--accent:#1C1917;--accent-hover:#292524;--success:#16A34A;--success-bg:#F0FDF4;--error:#DC2626;--error-bg:#FEF2F2;--warning:#D97706;--warning-bg:#FFFBEB;--processing-bg:#EFF6FF;--processing:#2563EB;--radius-sm:8px;--radius:14px;--radius-lg:20px;--radius-xl:28px;--shadow-sm:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);--shadow:0 4px 16px rgba(0,0,0,.07),0 1px 4px rgba(0,0,0,.04);--shadow-lg:0 12px 40px rgba(0,0,0,.10),0 2px 8px rgba(0,0,0,.05);--font:'Inter',-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.header-inner{max-width:1160px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+.logo-mark{width:32px;height:32px;background:var(--accent);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;letter-spacing:-.5px}
+.logo-text{font-weight:600;font-size:15px;letter-spacing:-.3px}
+.logo-badge{background:var(--bg);border:1px solid var(--border);color:var(--text-secondary);font-size:11px;font-weight:500;padding:2px 7px;border-radius:20px;letter-spacing:.3px}
+.header-actions{display:flex;align-items:center;gap:8px}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--text-secondary);padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;font-family:var(--font);display:flex;align-items:center;gap:6px}
+.btn-ghost:hover{background:var(--bg);color:var(--text);border-color:#ccc}
+.btn-icon{background:none;border:1px solid var(--border);color:var(--text-secondary);width:36px;height:36px;border-radius:var(--radius-sm);font-size:16px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.btn-icon:hover{background:var(--bg);color:var(--text)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);display:inline-block}
+.status-dot.online{background:var(--success);box-shadow:0 0 0 2px #bbf7d0}
+.main{max-width:1160px;margin:0 auto;padding:28px 24px 64px;display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+@media(max-width:900px){.main{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm)}
+.panel-header{padding:18px 20px 14px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-size:13px;font-weight:600;letter-spacing:.05px}
+.panel-body{padding:20px}
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);background:var(--bg);cursor:pointer;transition:all .2s;position:relative;overflow:hidden;aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:#f3f1ee}
+.upload-zone.has-image{border-style:solid;border-color:var(--border)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.upload-icon{font-size:28px;opacity:.5}
+.upload-text{font-size:13px;color:var(--text-secondary);font-weight:500;text-align:center}
+.upload-sub{font-size:11px;color:var(--text-muted)}
+.preview-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.preview-overlay{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;opacity:0;transition:opacity .2s;color:white;font-size:13px;font-weight:500}
+.upload-zone.has-image:hover .preview-overlay{opacity:1}
+.preview-overlay-icon{font-size:22px}
+.upload-zone.has-image input[type=file]{z-index:2}
+.bulk-queue{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.bulk-item{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;font-size:12px}
+.bulk-item-thumb{width:32px;height:32px;border-radius:5px;object-fit:cover;flex-shrink:0}
+.bulk-item-name{flex:1;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bulk-item-status{font-size:11px;font-weight:500;flex-shrink:0}
+.bulk-item-status.processing{color:var(--processing)}
+.bulk-item-status.complete{color:var(--success)}
+.bulk-item-status.error{color:var(--error)}
+.bulk-item-status.ingested{color:var(--text-muted)}
+label.field-label{font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;letter-spacing:.05px}
+textarea,select,input[type=text]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;font-family:var(--font);color:var(--text);resize:none;outline:none;transition:border-color .15s}
+textarea:focus,select:focus,input[type=text]:focus{border-color:#a09890}
+textarea{min-height:72px}
+.section-gap{height:16px}
+.btn-primary{width:100%;padding:13px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary:hover:not(:disabled){background:var(--accent-hover);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.collections-list{display:flex;flex-direction:column;gap:6px}
+.coll-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;border:1px solid transparent;transition:all .15s}
+.coll-item:hover{background:var(--bg);border-color:var(--border)}
+.coll-item.active{background:var(--accent);color:white;border-color:var(--accent)}
+.coll-item.active .coll-name{color:white}
+.coll-item.active .coll-count{color:rgba(255,255,255,.7)}
+.coll-name{font-size:13px;font-weight:500}
+.coll-count{font-size:11px;color:var(--text-muted)}
+.coll-none{font-size:13px;color:var(--text-muted);text-align:center;padding:12px 0}
+.history-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.history-thumb{aspect-ratio:1;border-radius:var(--radius-sm);overflow:hidden;position:relative;cursor:pointer;border:2px solid transparent;background:var(--bg);transition:all .15s}
+.history-thumb:hover{border-color:#c9c3bb;transform:translateY(-1px)}
+.history-thumb.active{border-color:var(--accent)}
+.history-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.history-badge{position:absolute;bottom:4px;left:4px;right:4px;font-size:9px;font-weight:700;text-align:center;padding:2px 4px;border-radius:4px;letter-spacing:.5px}
+.badge-complete{background:var(--success);color:white}
+.badge-processing{background:var(--processing);color:white}
+.badge-error{background:var(--error);color:white}
+.badge-ingested{background:var(--text-muted);color:white}
+.history-empty{font-size:13px;color:var(--text-muted);text-align:center;padding:20px 0}
+.right-col{display:flex;flex-direction:column;gap:20px}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm)}
+.result-image-wrap{width:100%;aspect-ratio:16/7;background:var(--bg);position:relative;overflow:hidden}
+.result-image-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.result-image-placeholder{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-muted);font-size:13px}
+.result-image-placeholder .ph-icon{font-size:36px;opacity:.3}
+.processing-overlay{position:absolute;inset:0;background:rgba(247,245,242,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.processing-overlay.visible{display:flex}
+.processing-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+.processing-label{font-size:13px;color:var(--text-secondary);font-weight:500}
+.meta-body{padding:22px;display:flex;flex-direction:column;gap:18px}
+.meta-section{}
+.meta-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.meta-section-label{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.8px;text-transform:uppercase}
+/* Editable title */
+.meta-value{font-size:15px;font-weight:600;color:var(--text);line-height:1.4}
+.meta-value[contenteditable]{cursor:text;border-radius:6px;padding:4px 6px;margin:-4px -6px;transition:background .15s,outline .15s;outline:2px solid transparent}
+.meta-value[contenteditable]:hover{background:var(--bg)}
+.meta-value[contenteditable]:focus{background:var(--bg);outline:2px solid #c9c3bb;outline-offset:0}
+.meta-desc{font-size:13px;color:var(--text-secondary);line-height:1.6}
+.meta-category{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;color:var(--text-secondary)}
+/* Keyword chips — draggable */
+.keywords-wrap{display:flex;flex-wrap:wrap;gap:6px;min-height:32px}
+.chip{background:var(--bg);border:1px solid var(--border);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px;cursor:grab;user-select:none;transition:all .12s;position:relative;display:inline-flex;align-items:center;gap:4px}
+.chip:active{cursor:grabbing}
+.chip.top{background:#1c191710;border-color:#1c191730;color:var(--text)}
+.chip.sortable-ghost{opacity:.35}
+.chip.sortable-chosen{box-shadow:0 4px 12px rgba(0,0,0,.15);transform:scale(1.05)}
+.chip-text{pointer-events:none}
+.chip-del{display:none;width:14px;height:14px;border-radius:50%;background:#e5e5e5;color:var(--text-secondary);border:none;font-size:10px;font-weight:700;cursor:pointer;padding:0;line-height:1;align-items:center;justify-content:center;flex-shrink:0;transition:background .12s}
+.chip-del:hover{background:var(--error);color:white}
+.chip:hover .chip-del{display:flex}
+/* inline edit input inside chip */
+.chip input.chip-edit{border:none;outline:none;background:transparent;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;font-family:var(--font);color:inherit;width:80px;padding:0}
+/* save bar */
+.save-bar{display:none;background:var(--warning-bg);border:1px solid #fde68a;border-radius:var(--radius-sm);padding:10px 14px;align-items:center;justify-content:space-between;gap:12px}
+.save-bar.visible{display:flex}
+.save-bar-msg{font-size:12px;color:var(--warning);font-weight:500}
+.btn-save{background:var(--accent);color:white;border:none;padding:7px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s}
+.btn-save:hover{background:var(--accent-hover)}
 /* copy button */
-.btn-copy {
-  background: none; border: 1px solid var(--border); color: var(--text-muted);
-  padding: 4px 10px; border-radius: var(--radius-sm); font-size: 11px; font-weight: 500;
-  cursor: pointer; transition: all .15s; font-family: var(--font);
-  display: flex; align-items: center; gap: 4px;
-}
-.btn-copy:hover { background: var(--bg); color: var(--text); border-color: #ccc; }
-.btn-copy.copied { background: var(--success-bg); color: var(--success); border-color: var(--success); }
-
-/* ── EXIF GRID ── */
-.exif-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.exif-item { background: var(--bg); border-radius: var(--radius-sm); padding: 10px 12px; }
-.exif-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
-.exif-value { font-size: 13px; font-weight: 500; color: var(--text); }
-
-/* ── COLOR PALETTE ── */
-.palette-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.color-swatch {
-  width: 36px; height: 36px; border-radius: 50%; border: 2px solid white;
-  box-shadow: 0 0 0 1px var(--border), 0 2px 6px rgba(0,0,0,0.1);
-  cursor: pointer; transition: transform .15s; flex-shrink: 0;
-  position: relative;
-}
-.color-swatch:hover { transform: scale(1.15); z-index: 1; }
-.color-hex { font-size: 11px; color: var(--text-muted); font-family: monospace; }
-
-/* ── RESOLUTION ── */
-.resolution-pill {
-  display: inline-flex; align-items: center; gap: 5px;
-  background: var(--bg); border: 1px solid var(--border);
-  padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; color: var(--text-secondary);
-}
-
-/* ── EXPORT BAR ── */
-.export-bar {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 16px 20px;
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  box-shadow: var(--shadow-sm);
-}
-.export-bar-info { font-size: 13px; color: var(--text-secondary); }
-.export-bar-info strong { color: var(--text); }
-.export-actions { display: flex; gap: 8px; }
-.btn-export {
-  background: var(--accent); color: white; border: none;
-  padding: 9px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
-  cursor: pointer; transition: all .15s; font-family: var(--font);
-  display: flex; align-items: center; gap: 6px;
-}
-.btn-export:hover { background: var(--accent-hover); }
-.btn-export:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* ── PLACEHOLDER STATE ── */
-.result-placeholder {
-  padding: 48px 24px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 12px; text-align: center;
-}
-.result-placeholder .ph-icon { font-size: 44px; opacity: 0.2; }
-.result-placeholder h3 { font-size: 16px; font-weight: 600; color: var(--text); }
-.result-placeholder p { font-size: 13px; color: var(--text-muted); max-width: 260px; }
-
-/* ── MODAL ── */
-.modal-backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200;
-  display: none; align-items: center; justify-content: center; padding: 20px;
-}
-.modal-backdrop.open { display: flex; }
-.modal {
-  background: var(--surface); border-radius: var(--radius-lg); width: 100%; max-width: 480px;
-  box-shadow: var(--shadow-lg); overflow: hidden;
-}
-.modal-header {
-  padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.modal-title { font-size: 15px; font-weight: 600; }
-.modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); line-height: 1; }
-.modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
-.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
-.btn-sm {
-  padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
-  cursor: pointer; font-family: var(--font); border: none; transition: all .15s;
-}
-.btn-sm.primary { background: var(--accent); color: white; }
-.btn-sm.primary:hover { background: var(--accent-hover); }
-.btn-sm.secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
-.btn-sm.secondary:hover { background: var(--border-light); }
-.btn-sm.danger { background: var(--error-bg); color: var(--error); border: 1px solid #fecaca; }
-
-/* ── TOAST ── */
-.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
-.toast {
-  background: var(--text); color: white; padding: 12px 16px; border-radius: var(--radius-sm);
-  font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lg);
-  animation: toastIn .2s ease; max-width: 320px;
-}
-.toast.success { background: var(--success); }
-.toast.error { background: var(--error); }
-@keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-/* ── DIVIDER ── */
-.divider { height: 1px; background: var(--border-light); margin: 4px 0; }
-
-/* chip count badge */
-.kw-count { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
+.btn-copy{background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;border-radius:var(--radius-sm);font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;font-family:var(--font);display:flex;align-items:center;gap:4px}
+.btn-copy:hover{background:var(--bg);color:var(--text);border-color:#ccc}
+.btn-copy.copied{background:var(--success-bg);color:var(--success);border-color:var(--success)}
+.exif-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.exif-item{background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px}
+.exif-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.exif-value{font-size:13px;font-weight:500;color:var(--text)}
+.palette-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.color-swatch{width:36px;height:36px;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px var(--border),0 2px 6px rgba(0,0,0,.1);cursor:pointer;transition:transform .15s;flex-shrink:0;position:relative}
+.color-swatch:hover{transform:scale(1.15);z-index:1}
+.color-hex{font-size:11px;color:var(--text-muted);font-family:monospace}
+.resolution-pill{display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;color:var(--text-secondary)}
+.export-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:var(--shadow-sm)}
+.export-bar-info{font-size:13px;color:var(--text-secondary)}
+.export-bar-info strong{color:var(--text)}
+.export-actions{display:flex;gap:8px}
+.btn-export{background:var(--accent);color:white;border:none;padding:9px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font);display:flex;align-items:center;gap:6px}
+.btn-export:hover{background:var(--accent-hover)}
+.btn-export:disabled{opacity:.4;cursor:not-allowed}
+.result-placeholder{padding:48px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center}
+.result-placeholder .ph-icon{font-size:44px;opacity:.2}
+.result-placeholder h3{font-size:16px;font-weight:600;color:var(--text)}
+.result-placeholder p{font-size:13px;color:var(--text-muted);max-width:260px}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:480px;box-shadow:var(--shadow-lg);overflow:hidden}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:15px;font-weight:600}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);line-height:1}
+.modal-body{padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.btn-sm{padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);border:none;transition:all .15s}
+.btn-sm.primary{background:var(--accent);color:white}
+.btn-sm.primary:hover{background:var(--accent-hover)}
+.btn-sm.secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.btn-sm.secondary:hover{background:var(--border-light)}
+.btn-sm.danger{background:var(--error-bg);color:var(--error);border:1px solid #fecaca}
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--text);color:white;padding:12px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);animation:toastIn .2s ease;max-width:320px}
+.toast.success{background:var(--success)}
+.toast.error{background:var(--error)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.divider{height:1px;background:var(--border-light);margin:4px 0}
+.kw-count{font-size:11px;color:var(--text-muted);margin-left:4px}
+.kw-hint{font-size:11px;color:var(--text-muted);margin-top:6px}
 </style>
 </head>
 <body>
-
-<!-- HEADER -->
 <header class="header">
   <div class="header-inner">
     <a class="logo" href="#">
@@ -403,26 +185,19 @@ textarea { min-height: 72px; }
   </div>
 </header>
 
-<!-- MAIN -->
 <main class="main">
-  <!-- LEFT COLUMN -->
+  <\!-- LEFT COLUMN -->
   <div class="left-col">
-    <!-- Upload panel -->
     <div class="panel">
       <div class="panel-header">
         <span class="panel-title">Upload</span>
         <span id="bulkCount" style="font-size:11px;color:var(--text-muted)"></span>
       </div>
       <div class="panel-body" style="display:flex;flex-direction:column;gap:14px;">
-        <!-- Collection selector -->
         <div>
           <label class="field-label">Collection (optional)</label>
-          <select id="collSelect">
-            <option value="">— No collection —</option>
-          </select>
+          <select id="collSelect"><option value="">— No collection —</option></select>
         </div>
-
-        <!-- Upload zone -->
         <div class="upload-zone" id="uploadZone">
           <input type="file" id="fileInput" accept="image/*,video/*" multiple onchange="handleFiles(this.files)"/>
           <img class="preview-img" id="previewImg" style="display:none"/>
@@ -436,17 +211,11 @@ textarea { min-height: 72px; }
             <div class="upload-sub">JPG, PNG, WEBP · Multiple files supported</div>
           </div>
         </div>
-
-        <!-- Bulk queue -->
         <div class="bulk-queue" id="bulkQueue" style="display:none;"></div>
-
-        <!-- Brief -->
         <div>
           <label class="field-label">Brief / AI Instructions</label>
           <textarea id="briefInput" placeholder="e.g. Shot in Slovakia, autumn forest, commercial lifestyle, target market: travel agencies, sustainability brands…" rows="3"></textarea>
         </div>
-
-        <!-- Generate button -->
         <button class="btn-primary" id="generateBtn" onclick="startGenerate()" disabled>
           <span id="btnSpinner" class="spinner" style="display:none"></span>
           <span id="btnText">✦ Generate Getty Metadata</span>
@@ -454,7 +223,6 @@ textarea { min-height: 72px; }
       </div>
     </div>
 
-    <!-- History panel -->
     <div class="panel" style="margin-top:20px;">
       <div class="panel-header">
         <span class="panel-title">History</span>
@@ -468,11 +236,9 @@ textarea { min-height: 72px; }
     </div>
   </div>
 
-  <!-- RIGHT COLUMN -->
+  <\!-- RIGHT COLUMN -->
   <div class="right-col">
-    <!-- Result card -->
     <div class="result-card" id="resultCard">
-      <!-- Image -->
       <div class="result-image-wrap" id="resultImageWrap">
         <div class="result-image-placeholder">
           <div class="ph-icon">🖼</div>
@@ -484,7 +250,6 @@ textarea { min-height: 72px; }
         </div>
       </div>
 
-      <!-- Metadata body or placeholder -->
       <div id="metaPlaceholder" class="result-placeholder">
         <div class="ph-icon">✦</div>
         <h3>Getty-quality metadata</h3>
@@ -492,19 +257,18 @@ textarea { min-height: 72px; }
       </div>
 
       <div id="metaBody" class="meta-body" style="display:none;">
-
-        <!-- Title -->
+        <\!-- Title (editable) -->
         <div class="meta-section">
           <div class="meta-section-header">
-            <span class="meta-section-label">Title</span>
+            <span class="meta-section-label">Title <span style="font-size:10px;color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;">— click to edit</span></span>
             <button class="btn-copy" onclick="copyField('title')">📋 Copy</button>
           </div>
-          <div class="meta-value" id="metaTitle">—</div>
+          <div class="meta-value" id="metaTitle" contenteditable="true" spellcheck="false"
+               oninput="markDirty()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">—</div>
         </div>
-
         <div class="divider"></div>
 
-        <!-- Description -->
+        <\!-- Description -->
         <div class="meta-section">
           <div class="meta-section-header">
             <span class="meta-section-label">Description</span>
@@ -512,10 +276,9 @@ textarea { min-height: 72px; }
           </div>
           <div class="meta-desc" id="metaDesc">—</div>
         </div>
-
         <div class="divider"></div>
 
-        <!-- Keywords -->
+        <\!-- Keywords (draggable + editable) -->
         <div class="meta-section">
           <div class="meta-section-header">
             <div style="display:flex;align-items:center;gap:6px;">
@@ -525,11 +288,17 @@ textarea { min-height: 72px; }
             <button class="btn-copy" onclick="copyField('keywords')">📋 Copy all</button>
           </div>
           <div class="keywords-wrap" id="metaKeywords"></div>
+          <div class="kw-hint">Drag to reorder · Double-click to rename · × to delete</div>
         </div>
-
         <div class="divider"></div>
 
-        <!-- Category + Resolution -->
+        <\!-- Save bar (appears when edits are pending) -->
+        <div class="save-bar" id="saveBar">
+          <span class="save-bar-msg">⚠ Unsaved changes</span>
+          <button class="btn-save" onclick="saveEdits()">💾 Save changes</button>
+        </div>
+
+        <\!-- Category + Resolution -->
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <div class="meta-section" style="flex:1;">
             <div class="meta-section-label" style="margin-bottom:6px;">Category</div>
@@ -541,19 +310,19 @@ textarea { min-height: 72px; }
           </div>
         </div>
 
-        <!-- EXIF -->
+        <\!-- EXIF -->
         <div class="meta-section" id="exifSection" style="display:none;">
           <div class="meta-section-label" style="margin-bottom:10px;">Camera Data</div>
           <div class="exif-grid" id="exifGrid"></div>
         </div>
 
-        <!-- Color Palette -->
+        <\!-- Color Palette -->
         <div class="meta-section" id="paletteSection" style="display:none;">
           <div class="meta-section-label" style="margin-bottom:10px;">Color Palette</div>
           <div class="palette-row" id="paletteRow"></div>
         </div>
 
-        <!-- Copy All -->
+        <\!-- Actions -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn-copy" style="flex:1;justify-content:center;padding:9px;" onclick="copyAll()">📋 Copy All Metadata</button>
           <button class="btn-ghost" style="flex:1;justify-content:center;" onclick="regenerate()">↺ Regenerate</button>
@@ -561,7 +330,6 @@ textarea { min-height: 72px; }
       </div>
     </div>
 
-    <!-- Export bar -->
     <div class="export-bar" id="exportBar">
       <div class="export-bar-info">
         <strong id="exportCount">0</strong> completed images ready for export
@@ -575,7 +343,7 @@ textarea { min-height: 72px; }
   </div>
 </main>
 
-<!-- COLLECTIONS MODAL -->
+<\!-- COLLECTIONS MODAL -->
 <div class="modal-backdrop" id="collModal">
   <div class="modal">
     <div class="modal-header">
@@ -583,9 +351,7 @@ textarea { min-height: 72px; }
       <button class="modal-close" onclick="closeCollModal()">×</button>
     </div>
     <div class="modal-body">
-      <div class="collections-list" id="collList">
-        <div class="coll-none">Loading…</div>
-      </div>
+      <div class="collections-list" id="collList"><div class="coll-none">Loading…</div></div>
       <div class="divider"></div>
       <div>
         <label class="field-label">New Collection</label>
@@ -603,7 +369,7 @@ textarea { min-height: 72px; }
   </div>
 </div>
 
-<!-- DELETE COLLECTION CONFIRM MODAL -->
+<\!-- DELETE COLLECTION CONFIRM MODAL -->
 <div class="modal-backdrop" id="delCollModal">
   <div class="modal">
     <div class="modal-header">
@@ -620,25 +386,22 @@ textarea { min-height: 72px; }
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-// ── Config ──────────────────────────────────────────────────────────────────
-const API_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-  ? 'http://localhost:8000'
-  : '';
+const API_URL = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:8000' : '';
 
-// ── State ───────────────────────────────────────────────────────────────────
 let currentAssetId = null;
 let pollTimer = null;
-let bulkQueue = [];   // [{file, assetId, status}]
+let bulkQueue = [];
 let collections = [];
 let selectedCollId = '';
 let deleteCollId = null;
 let completedCount = 0;
+let isDirty = false;
+let currentKeywords = [];
+let sortableInstance = null;
 
-// ── Init ────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   await checkHealth();
   await loadCollections();
@@ -648,7 +411,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   setupDragDrop();
 });
 
-// ── Health ──────────────────────────────────────────────────────────────────
 async function checkHealth() {
   try {
     const r = await fetch(`${API_URL}/health`);
@@ -661,43 +423,33 @@ async function checkHealth() {
   } catch(e) {}
 }
 
-// ── Drag & Drop ──────────────────────────────────────────────────────────────
 function setupDragDrop() {
   const zone = document.getElementById('uploadZone');
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
   zone.addEventListener('drop', e => {
-    e.preventDefault();
-    zone.classList.remove('drag');
+    e.preventDefault(); zone.classList.remove('drag');
     if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
   });
 }
 
-// ── File handling ────────────────────────────────────────────────────────────
 function handleFiles(files) {
-  if (!files || files.length === 0) return;
+  if (\!files || files.length === 0) return;
   bulkQueue = [];
-  for (const f of files) {
-    bulkQueue.push({ file: f, assetId: null, status: 'pending', thumb: null });
-  }
+  for (const f of files) bulkQueue.push({ file: f, assetId: null, status: 'pending', thumb: null });
   renderBulkQueue();
   document.getElementById('generateBtn').disabled = false;
-
-  // Show first image as preview
   const first = files[0];
   const reader = new FileReader();
   reader.onload = e => {
     const img = document.getElementById('previewImg');
-    img.src = e.target.result;
-    img.style.display = 'block';
+    img.src = e.target.result; img.style.display = 'block';
     document.getElementById('uploadPlaceholder').style.display = 'none';
     document.getElementById('previewOverlay').style.display = 'flex';
     document.getElementById('uploadZone').classList.add('has-image');
   };
   reader.readAsDataURL(first);
-
-  const countEl = document.getElementById('bulkCount');
-  countEl.textContent = files.length > 1 ? `${files.length} files selected` : '';
+  document.getElementById('bulkCount').textContent = files.length > 1 ? `${files.length} files selected` : '';
 }
 
 function renderBulkQueue() {
@@ -709,12 +461,9 @@ function renderBulkQueue() {
       ${item.thumb ? `<img class="bulk-item-thumb" src="${item.thumb}"/>` : `<div class="bulk-item-thumb" style="background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:16px;">📷</div>`}
       <span class="bulk-item-name">${item.file.name}</span>
       <span class="bulk-item-status ${item.status}">${statusLabel(item.status)}</span>
-    </div>
-  `).join('');
-
-  // Load thumbnails
+    </div>`).join('');
   bulkQueue.forEach((item, i) => {
-    if (!item.thumb) {
+    if (\!item.thumb) {
       const reader = new FileReader();
       reader.onload = e => {
         item.thumb = e.target.result;
@@ -730,52 +479,33 @@ function statusLabel(s) {
   return { pending:'—', processing:'⏳ Processing', complete:'✓ Done', error:'✗ Error', ingested:'⏳ Queued' }[s] || s;
 }
 
-// ── Generate ─────────────────────────────────────────────────────────────────
 async function startGenerate() {
   if (bulkQueue.length === 0) return;
   const brief = document.getElementById('briefInput').value.trim();
   const collId = document.getElementById('collSelect').value;
-
   setGenerating(true);
-
   for (let i = 0; i < bulkQueue.length; i++) {
     const item = bulkQueue[i];
-    item.status = 'processing';
-    renderBulkQueue();
-    updateBulkStatus(i, 'processing');
+    item.status = 'processing'; renderBulkQueue(); updateBulkStatus(i, 'processing');
     try {
       const assetId = await uploadFile(item.file, brief, collId);
-      item.assetId = assetId;
-      item.status = 'ingested';
-      updateBulkStatus(i, 'ingested');
+      item.assetId = assetId; item.status = 'ingested'; updateBulkStatus(i, 'ingested');
       if (i === 0) {
-        currentAssetId = assetId;
-        showProcessing(true);
-        loadResultImage(item.file);
-        startPolling(assetId);
+        currentAssetId = assetId; showProcessing(true); loadResultImage(item.file); startPolling(assetId);
       } else {
-        // poll silently for other items
         pollSilent(assetId, i);
       }
     } catch(e) {
-      item.status = 'error';
-      updateBulkStatus(i, 'error');
-      toast(e.message || 'Upload failed', 'error');
+      item.status = 'error'; updateBulkStatus(i, 'error'); toast(e.message || 'Upload failed', 'error');
     }
   }
-
-  if (bulkQueue.length === 1) {
-    setGenerating(false);
-  }
+  if (bulkQueue.length === 1) setGenerating(false);
 }
 
 function updateBulkStatus(i, status) {
   bulkQueue[i].status = status;
   const el = document.querySelector(`#bulk-${i} .bulk-item-status`);
-  if (el) {
-    el.className = `bulk-item-status ${status}`;
-    el.textContent = statusLabel(status);
-  }
+  if (el) { el.className = `bulk-item-status ${status}`; el.textContent = statusLabel(status); }
 }
 
 async function uploadFile(file, brief, collId) {
@@ -783,12 +513,8 @@ async function uploadFile(file, brief, collId) {
   fd.append('file', file);
   if (brief) fd.append('hints', JSON.stringify({ brief }));
   if (collId) fd.append('collection_id', collId);
-
   const r = await fetch(`${API_URL}/api/v1/assets/upload`, { method: 'POST', body: fd });
-  if (!r.ok) {
-    const e = await r.json().catch(() => ({}));
-    throw new Error(e.detail || `Upload failed (${r.status})`);
-  }
+  if (\!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.detail || `Upload failed (${r.status})`); }
   const d = await r.json();
   return d.asset_id;
 }
@@ -798,9 +524,8 @@ function loadResultImage(file) {
   reader.onload = e => {
     const wrap = document.getElementById('resultImageWrap');
     let img = wrap.querySelector('img.result-img');
-    if (!img) {
-      img = document.createElement('img');
-      img.className = 'result-img';
+    if (\!img) {
+      img = document.createElement('img'); img.className = 'result-img';
       img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
       wrap.querySelector('.result-image-placeholder').style.display = 'none';
       wrap.insertBefore(img, wrap.querySelector('.processing-overlay'));
@@ -828,18 +553,13 @@ function startPolling(assetId) {
 async function pollAsset(assetId) {
   try {
     const r = await fetch(`${API_URL}/api/v1/assets/${assetId}`);
-    if (!r.ok) return;
+    if (\!r.ok) return;
     const asset = await r.json();
     if (asset.status === 'complete') {
-      clearInterval(pollTimer);
-      showProcessing(false);
-      setGenerating(false);
-      await loadMetadata(assetId, asset);
-      await loadAssets();
+      clearInterval(pollTimer); showProcessing(false); setGenerating(false);
+      await loadMetadata(assetId, asset); await loadAssets();
     } else if (asset.status === 'error') {
-      clearInterval(pollTimer);
-      showProcessing(false);
-      setGenerating(false);
+      clearInterval(pollTimer); showProcessing(false); setGenerating(false);
       toast(asset.error_message || 'Processing failed', 'error');
     }
   } catch(e) {}
@@ -849,12 +569,10 @@ async function pollSilent(assetId, queueIdx) {
   const timer = setInterval(async () => {
     try {
       const r = await fetch(`${API_URL}/api/v1/assets/${assetId}`);
-      if (!r.ok) return;
+      if (\!r.ok) return;
       const asset = await r.json();
       if (asset.status === 'complete' || asset.status === 'error') {
-        clearInterval(timer);
-        updateBulkStatus(queueIdx, asset.status);
-        await loadAssets();
+        clearInterval(timer); updateBulkStatus(queueIdx, asset.status); await loadAssets();
       }
     } catch(e) {}
   }, 2500);
@@ -864,33 +582,28 @@ async function pollSilent(assetId, queueIdx) {
 async function loadMetadata(assetId, asset) {
   try {
     const r = await fetch(`${API_URL}/api/v1/metadata/${assetId}`);
-    if (!r.ok) return;
+    if (\!r.ok) return;
     const data = await r.json();
     const g = data.getty;
-    if (!g) return;
+    if (\!g) return;
 
     document.getElementById('metaPlaceholder').style.display = 'none';
     document.getElementById('metaBody').style.display = 'flex';
 
-    document.getElementById('metaTitle').textContent = g.title || '—';
+    // Title (editable)
+    const titleEl = document.getElementById('metaTitle');
+    titleEl.textContent = g.title || '—';
+    isDirty = false;
+    document.getElementById('saveBar').classList.remove('visible');
+
     document.getElementById('metaDesc').textContent = g.description || '—';
     document.getElementById('metaCategory').textContent = g.category_primary || '—';
 
-    // Resolution
     const res = document.getElementById('metaResolution');
-    if (asset && asset.width && asset.height) {
-      res.textContent = `${asset.width} × ${asset.height}px`;
-    } else {
-      res.textContent = '—';
-    }
+    res.textContent = (asset && asset.width && asset.height) ? `${asset.width} × ${asset.height}px` : '—';
 
-    // Keywords chips
-    const kws = g.keywords_ranked || [];
-    document.getElementById('kwCount').textContent = `(${kws.length})`;
-    const kwWrap = document.getElementById('metaKeywords');
-    kwWrap.innerHTML = kws.map((k, i) =>
-      `<span class="chip ${i < 10 ? 'top' : ''}" title="${k}">${k}</span>`
-    ).join('');
+    // Keywords — draggable chips
+    renderEditableKeywords(g.keywords_ranked || []);
 
     // EXIF
     const exif = data.exif_data || {};
@@ -910,24 +623,142 @@ async function loadMetadata(assetId, asset) {
     const palette = data.color_palette || [];
     if (palette.length > 0) {
       document.getElementById('paletteSection').style.display = 'block';
-      document.getElementById('paletteRow').innerHTML = palette.map(hex =>
-        `<div class="color-swatch" style="background:${hex}" title="${hex}" onclick="copyText('${hex}')"></div>`
-      ).join('') + `<span class="color-hex">${palette[0]}</span>`;
+      document.getElementById('paletteRow').innerHTML =
+        palette.map(hex => `<div class="color-swatch" style="background:${hex}" title="${hex}" onclick="copyText('${hex}')"></div>`).join('') +
+        `<span class="color-hex">${palette[0]}</span>`;
     } else {
       document.getElementById('paletteSection').style.display = 'none';
     }
 
     currentAssetId = assetId;
-  } catch(e) {
-    toast('Could not load metadata', 'error');
-  }
+  } catch(e) { toast('Could not load metadata', 'error'); }
 }
 
-// ── History ──────────────────────────────────────────────────────────────────
+// ── Editable keywords with SortableJS ────────────────────────────────────────
+function renderEditableKeywords(kws) {
+  currentKeywords = [...kws];
+  const wrap = document.getElementById('metaKeywords');
+  wrap.innerHTML = '';
+
+  kws.forEach((k, i) => {
+    const chip = document.createElement('span');
+    chip.className = `chip${i < 10 ? ' top' : ''}`;
+    chip.setAttribute('data-kw', k);
+
+    const txt = document.createElement('span');
+    txt.className = 'chip-text';
+    txt.textContent = k;
+    chip.appendChild(txt);
+
+    // Delete button
+    const del = document.createElement('button');
+    del.className = 'chip-del';
+    del.textContent = '×';
+    del.title = 'Remove keyword';
+    del.addEventListener('mousedown', e => {
+      e.preventDefault(); e.stopPropagation();
+      const idx = currentKeywords.indexOf(chip.dataset.kw || k);
+      if (idx \!== -1) currentKeywords.splice(idx, 1);
+      chip.remove();
+      updateKwCount();
+      markDirty();
+    });
+    chip.appendChild(del);
+
+    // Double-click to rename
+    chip.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      const oldVal = chip.dataset.kw || k;
+      txt.style.display = 'none';
+      del.style.display = 'none';
+      const inp = document.createElement('input');
+      inp.className = 'chip-edit';
+      inp.type = 'text';
+      inp.value = oldVal;
+      chip.insertBefore(inp, del);
+      inp.focus(); inp.select();
+      const commit = () => {
+        const nv = inp.value.trim();
+        if (nv && nv \!== oldVal) {
+          const idx = currentKeywords.indexOf(oldVal);
+          if (idx \!== -1) currentKeywords[idx] = nv;
+          chip.dataset.kw = nv;
+          markDirty();
+        }
+        txt.textContent = chip.dataset.kw || oldVal;
+        txt.style.display = '';
+        del.style.display = '';
+        inp.remove();
+      };
+      inp.addEventListener('blur', commit);
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+        if (e.key === 'Escape') { inp.value = oldVal; commit(); }
+      });
+    });
+
+    wrap.appendChild(chip);
+  });
+
+  // SortableJS
+  if (sortableInstance) { sortableInstance.destroy(); sortableInstance = null; }
+  if (typeof Sortable \!== 'undefined') {
+    sortableInstance = Sortable.create(wrap, {
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      filter: '.chip-del, .chip-edit',
+      preventOnFilter: false,
+      onEnd: evt => {
+        const moved = currentKeywords.splice(evt.oldIndex, 1)[0];
+        currentKeywords.splice(evt.newIndex, 0, moved);
+        // Update chip data-kw ordering
+        [...wrap.querySelectorAll('.chip')].forEach((c, i) => {
+          c.className = `chip${i < 10 ? ' top' : ''}`;
+        });
+        markDirty();
+      }
+    });
+  }
+
+  updateKwCount();
+}
+
+function updateKwCount() {
+  const chips = document.querySelectorAll('#metaKeywords .chip');
+  document.getElementById('kwCount').textContent = `(${chips.length})`;
+}
+
+function markDirty() {
+  isDirty = true;
+  document.getElementById('saveBar').classList.add('visible');
+}
+
+async function saveEdits() {
+  if (\!currentAssetId) return;
+  const title = document.getElementById('metaTitle').textContent.trim();
+  // Sync currentKeywords from DOM order (in case sortable moved things)
+  const chips = [...document.querySelectorAll('#metaKeywords .chip')];
+  const kws = chips.map(c => c.dataset.kw || c.querySelector('.chip-text')?.textContent || '').filter(Boolean);
+  try {
+    const r = await fetch(`${API_URL}/api/v1/metadata/${currentAssetId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, keywords_ranked: kws })
+    });
+    if (\!r.ok) throw new Error();
+    isDirty = false;
+    currentKeywords = kws;
+    document.getElementById('saveBar').classList.remove('visible');
+    toast('Saved\!', 'success');
+  } catch(e) { toast('Save failed', 'error'); }
+}
+
+// ── History ────────────────────────────────────────────────────────────────────
 async function loadAssets() {
   try {
     const r = await fetch(`${API_URL}/api/v1/assets/?page_size=30`);
-    if (!r.ok) return;
+    if (\!r.ok) return;
     const data = await r.json();
     const items = data.items || [];
     completedCount = items.filter(a => a.status === 'complete').length;
@@ -938,16 +769,12 @@ async function loadAssets() {
 
 function renderHistory(items) {
   const grid = document.getElementById('historyGrid');
-  if (items.length === 0) {
-    grid.innerHTML = '<div class="history-empty" style="grid-column:1/-1">No images yet</div>';
-    return;
-  }
+  if (items.length === 0) { grid.innerHTML = '<div class="history-empty" style="grid-column:1/-1">No images yet</div>'; return; }
   grid.innerHTML = items.map(a => `
     <div class="history-thumb ${a.asset_id === currentAssetId ? 'active' : ''}" onclick="selectAsset('${a.asset_id}')">
       <img src="${API_URL}/api/v1/uploads/${a.asset_id}${getExt(a.filename)}" onerror="this.style.display='none'" loading="lazy"/>
       <div class="history-badge badge-${a.status}">${a.status.toUpperCase()}</div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 function getExt(filename) {
@@ -958,41 +785,31 @@ function getExt(filename) {
 async function selectAsset(assetId) {
   currentAssetId = assetId;
   const r = await fetch(`${API_URL}/api/v1/assets/${assetId}`);
-  if (!r.ok) return;
+  if (\!r.ok) return;
   const asset = await r.json();
-
-  // show image
   const wrap = document.getElementById('resultImageWrap');
   let img = wrap.querySelector('img.result-img');
-  if (!img) {
-    img = document.createElement('img');
-    img.className = 'result-img';
+  if (\!img) {
+    img = document.createElement('img'); img.className = 'result-img';
     img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
     wrap.querySelector('.result-image-placeholder').style.display = 'none';
     wrap.insertBefore(img, wrap.querySelector('.processing-overlay'));
   }
   img.src = `${API_URL}/api/v1/uploads/${assetId}${getExt(asset.filename)}`;
-
   if (asset.status === 'complete') {
-    showProcessing(false);
-    await loadMetadata(assetId, asset);
+    showProcessing(false); await loadMetadata(assetId, asset);
   } else if (asset.status === 'processing' || asset.status === 'ingested') {
     showProcessing(true);
     document.getElementById('metaPlaceholder').style.display = 'flex';
     document.getElementById('metaBody').style.display = 'none';
     startPolling(assetId);
   } else if (asset.status === 'error') {
-    showProcessing(false);
-    toast(asset.error_message || 'Processing failed', 'error');
+    showProcessing(false); toast(asset.error_message || 'Processing failed', 'error');
   }
   loadAssets();
 }
 
-// ── Image serving (via storage path) ─────────────────────────────────────────
-// Assets are served from the upload directory
-// We add a route on server side — but as fallback we use object URLs from history
-
-// ── Copy functions ────────────────────────────────────────────────────────────
+// ── Copy functions ──────────────────────────────────────────────────────────────
 function copyField(field) {
   let text = '';
   if (field === 'title') {
@@ -1001,37 +818,35 @@ function copyField(field) {
     text = document.getElementById('metaDesc').textContent;
   } else if (field === 'keywords') {
     const chips = document.querySelectorAll('#metaKeywords .chip');
-    text = Array.from(chips).map(c => c.title || c.textContent).join(', ');
+    text = Array.from(chips).map(c => c.dataset.kw || c.querySelector('.chip-text')?.textContent || '').filter(Boolean).join(', ');
   }
-  if (!text || text === '—') return;
+  if (\!text || text === '—') return;
   copyText(text);
-  // flash the button
   event.target.closest('.btn-copy').classList.add('copied');
   setTimeout(() => event.target.closest('.btn-copy')?.classList.remove('copied'), 1500);
 }
 
 function copyAll() {
   const title = document.getElementById('metaTitle').textContent;
-  const desc  = document.getElementById('metaDesc').textContent;
+  const desc = document.getElementById('metaDesc').textContent;
   const chips = document.querySelectorAll('#metaKeywords .chip');
-  const kws   = Array.from(chips).map(c => c.title || c.textContent).join(', ');
-  const cat   = document.getElementById('metaCategory').textContent;
-  const text  = `Title: ${title}\n\nDescription: ${desc}\n\nKeywords: ${kws}\n\nCategory: ${cat}`;
-  copyText(text);
+  const kws = Array.from(chips).map(c => c.dataset.kw || c.querySelector('.chip-text')?.textContent || '').filter(Boolean).join(', ');
+  const cat = document.getElementById('metaCategory').textContent;
+  copyText(`Title: ${title}\n\nDescription: ${desc}\n\nKeywords: ${kws}\n\nCategory: ${cat}`);
 }
 
 function copyText(text) {
-  navigator.clipboard.writeText(text).then(() => toast('Copied!', 'success')).catch(() => {
+  navigator.clipboard.writeText(text).then(() => toast('Copied\!', 'success')).catch(() => {
     const ta = document.createElement('textarea');
-    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
     document.body.appendChild(ta); ta.focus(); ta.select();
     document.execCommand('copy'); document.body.removeChild(ta);
-    toast('Copied!', 'success');
+    toast('Copied\!', 'success');
   });
 }
 
 async function regenerate() {
-  if (!currentAssetId) return;
+  if (\!currentAssetId) return;
   try {
     const r = await fetch(`${API_URL}/api/v1/metadata/${currentAssetId}/regenerate`, { method: 'POST' });
     if (r.ok) {
@@ -1044,7 +859,7 @@ async function regenerate() {
   } catch(e) { toast('Regeneration failed', 'error'); }
 }
 
-// ── Export ───────────────────────────────────────────────────────────────────
+// ── Export ──────────────────────────────────────────────────────────────────────
 function updateExportBar(count) {
   document.getElementById('exportCount').textContent = count;
   document.getElementById('exportBtn').disabled = count === 0;
@@ -1053,27 +868,23 @@ function updateExportBar(count) {
 async function exportCSV() {
   try {
     const r = await fetch(`${API_URL}/api/v1/export/csv`, { method: 'POST' });
-    if (!r.ok) { toast('No data to export', 'error'); return; }
+    if (\!r.ok) { toast('No data to export', 'error'); return; }
     const blob = await r.blob();
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `microstockplus_${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast('CSV downloaded!', 'success');
+    const a = document.createElement('a'); a.href = url; a.download = `microstockplus_${Date.now()}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast('CSV downloaded\!', 'success');
   } catch(e) { toast('Export failed', 'error'); }
 }
 
-// ── Collections ───────────────────────────────────────────────────────────────
+// ── Collections ─────────────────────────────────────────────────────────────────
 async function loadCollections() {
   try {
     const r = await fetch(`${API_URL}/api/v1/collections`);
-    if (!r.ok) return;
+    if (\!r.ok) return;
     const data = await r.json();
     collections = data.items || [];
-    renderCollSelect();
-    renderCollList();
+    renderCollSelect(); renderCollList();
   } catch(e) {}
 }
 
@@ -1087,10 +898,7 @@ function renderCollSelect() {
 
 function renderCollList() {
   const container = document.getElementById('collList');
-  if (collections.length === 0) {
-    container.innerHTML = '<div class="coll-none">No collections yet</div>';
-    return;
-  }
+  if (collections.length === 0) { container.innerHTML = '<div class="coll-none">No collections yet</div>'; return; }
   container.innerHTML = collections.map(c => `
     <div class="coll-item ${c.id === selectedCollId ? 'active' : ''}" onclick="selectColl('${c.id}')">
       <div>
@@ -1101,8 +909,7 @@ function renderCollList() {
         <span class="coll-count">${c.asset_count||0}</span>
         <button onclick="event.stopPropagation();promptDeleteColl('${c.id}','${escHtml(c.name)}')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:14px;padding:2px;">🗑</button>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 function selectColl(id) {
@@ -1114,18 +921,17 @@ function selectColl(id) {
 async function createCollection() {
   const name = document.getElementById('newCollName').value.trim();
   const brief = document.getElementById('newCollBrief').value.trim();
-  if (!name) { toast('Collection name is required', 'error'); return; }
+  if (\!name) { toast('Collection name is required', 'error'); return; }
   try {
     const r = await fetch(`${API_URL}/api/v1/collections`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, brief })
     });
-    if (!r.ok) throw new Error();
+    if (\!r.ok) throw new Error();
     document.getElementById('newCollName').value = '';
     document.getElementById('newCollBrief').value = '';
     await loadCollections();
-    toast('Collection created!', 'success');
+    toast('Collection created\!', 'success');
   } catch(e) { toast('Failed to create collection', 'error'); }
 }
 
@@ -1136,7 +942,7 @@ function promptDeleteColl(id, name) {
 }
 
 async function confirmDeleteColl() {
-  if (!deleteCollId) return;
+  if (\!deleteCollId) return;
   try {
     await fetch(`${API_URL}/api/v1/collections/${deleteCollId}`, { method: 'DELETE' });
     document.getElementById('delCollModal').classList.remove('open');
@@ -1145,35 +951,22 @@ async function confirmDeleteColl() {
   } catch(e) { toast('Delete failed', 'error'); }
 }
 
-function openCollModal() {
-  loadCollections();
-  document.getElementById('collModal').classList.add('open');
-}
-function closeCollModal() {
-  document.getElementById('collModal').classList.remove('open');
-}
+function openCollModal() { loadCollections(); document.getElementById('collModal').classList.add('open'); }
+function closeCollModal() { document.getElementById('collModal').classList.remove('open'); }
 
-// ── Utils ─────────────────────────────────────────────────────────────────────
 function toast(msg, type = '') {
   const c = document.getElementById('toastContainer');
   const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.textContent = msg;
-  c.appendChild(t);
-  setTimeout(() => t.remove(), 3000);
+  t.className = `toast ${type}`; t.textContent = msg;
+  c.appendChild(t); setTimeout(() => t.remove(), 3000);
 }
 
 function escHtml(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Close modals on backdrop click
-document.getElementById('collModal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeCollModal();
-});
-document.getElementById('delCollModal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) e.target.classList.remove('open');
-});
+document.getElementById('collModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeCollModal(); });
+document.getElementById('delCollModal').addEventListener('click', e => { if (e.target === e.currentTarget) e.target.classList.remove('open'); });
 </script>
 </body>
 </html>
