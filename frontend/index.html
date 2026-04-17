@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StockMeta AI — Adobe & Shutterstock Metadata Generator</title>
+  <style>
+    /* ── Reset & Base ────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0d0f14;
+      --bg2:         #13161e;
+      --bg3:         #1a1e2a;
+      --border:      #242836;
+      --border2:     #2e3347;
+      --accent:      #6c63ff;
+      --accent2:     #8b5cf6;
+      --accent3:     #06b6d4;
+      --success:     #10b981;
+      --warning:     #f59e0b;
+      --danger:      #ef4444;
+      --text:        #e8eaf0;
+      --text2:       #9ca3b8;
+      --text3:       #5c6278;
+      --adobe:       #ff0000;
+      --adobe-bg:    #1a0000;
+      --ss:          #e8423c;
+      --ss-bg:       #1a0e0e;
+      --radius:      12px;
+      --radius-lg:   18px;
+      --shadow:      0 4px 24px rgba(0,0,0,0.4);
+      --shadow-glow: 0 0 40px rgba(108,99,255,0.15);
+      --transition:  0.2s ease;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Scrollbar ───────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg2); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    /* ── Typography ─────────────────────────────────── */
+    h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.02em; }
+    a { color: var(--accent); text-decoration: none; }
+
+    /* ── Layout ─────────────────────────────────────── */
+    .app-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      grid-template-rows: 64px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────────────── */
+    .header {
+      grid-column: 1 / -1;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent3));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      -webkit-text-fill-color: white;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .api-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text2);
+      background: var(--bg3);
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--text3);
+    }
+    .status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .status-dot.offline { background: var(--danger); }
+
+    /* ── Sidebar ─────────────────────────────────────── */
+    .sidebar {
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+    }
+
+    .nav-section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text3);
+      padding: 0 12px;
+      margin: 8px 0 4px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text2);
+      transition: all var(--transition);
+      border: 1px solid transparent;
+      user-select: none;
+    }
+
+    .nav-item:hover { background: var(--bg3); color: var(--text); }
+    .nav-item.active {
+      background: rgba(108,99,255,0.12);
+      color: var(--accent);
+      border-color: rgba(108,99,255,0.25);
+    }
+
+    .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+    .nav-badge {
+      margin-left: auto;
+      background: var(--accent);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .api-key-section {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+
+    .api-key-section label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+
+    .api-key-section input {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--text);
+      font-family: monospace;
+      outline: none;
+    }
+
+    .api-key-section input:focus { border-color: var(--accent); }
+
+    /* ── Main Content ────────────────────────────────── */
+    .main {
+      overflow-y: auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* ── Page Sections ───────────────────────────────── */
+    .page { display: none; }
+    .page.active { display: flex; flex-direction: column; gap: 28px; }
+
+    /* ── Upload Zone ─────────────────────────────────── */
+    .upload-zone {
+      border: 2px dashed var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 60px 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      background: var(--bg2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(108,99,255,0.05) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(108,99,255,0.04);
+    }
+
+    .upload-zone:hover::before, .upload-zone.drag-over::before { opacity: 1; }
+
+    .upload-zone.drag-over {
+      transform: scale(1.01);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .upload-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+      filter: grayscale(0.3);
+    }
+
+    .upload-zone h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .upload-zone p {
+      color: var(--text2);
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .upload-zone .formats {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .format-tag {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text2);
+      font-family: monospace;
+    }
+
+    /* ── Hints Panel ─────────────────────────────────── */
+    .hints-panel {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+    }
+
+    .hints-panel h3 {
+      font-size: 15px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+    }
+
+    .hints-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+
+    .hint-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+
+    .hint-field input,
+    .hint-field select {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      transition: border-color var(--transition);
+      font-family: inherit;
+    }
+
+    .hint-field input:focus,
+    .hint-field select:focus { border-color: var(--accent); }
+
+    .hint-field select option { background: var(--bg3); }
+
+    /* ── Buttons ─────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all var(--transition);
+      white-space: nowrap;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      box-shadow: 0 4px 16px rgba(108,99,255,0.3);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(108,99,255,0.4);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--text2);
+    }
+    .btn-ghost:hover { background: var(--bg3); border-color: var(--accent); color: var(--text); }
+
+    .btn-danger {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: var(--danger);
+    }
+    .btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+    .btn-success {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.3);
+      color: var(--success);
+    }
+    .btn-success:hover { background: rgba(16,185,129,0.2); }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .btn-sm { padding: 6px 14px; font-size: 13px; }
+    .btn-lg { padding: 14px 28px; font-size: 16px; }
+
+    /* ── Upload Button ────────────────────────────────── */
+    .upload-btn-wrap {
+      display: flex;
+      justify-content: center;
+    }
+
+    #fileInput { display: none; }
+
+    /* ── Stats Bar ───────────────────────────────────── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .stat-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .stat-icon {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .stat-icon.purple { background: rgba(108,99,255,0.15); }
+    .stat-icon.cyan   { background: rgba(6,182,212,0.15); }
+    .stat-icon.green  { background: rgba(16,185,129,0.15); }
+    .stat-icon.amber  { background: rgba(245,158,11,0.15); }
+
+    .stat-value { font-size: 24px; font-weight: 800; line-height: 1; }
+    .stat-label { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+    /* ── Asset Grid ──────────────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: -8px;
+    }
+
+    .section-header h2 { font-size: 18px; }
+
+    .asset-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .asset-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+    }
+
+    .asset-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .asset-card.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(108,99,255,0.3);
+    }
+
+    .asset-thumb {
+      width: 100%;
+      aspect-ratio: 16/10;
+      background: var(--bg3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .asset-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .asset-thumb .overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.7));
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+
+    .asset-card:hover .overlay { opacity: 1; }
+
+    .asset-type-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: white;
+    }
+
+    .asset-status-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .badge-complete  { background: rgba(16,185,129,0.2);  color: var(--success); border: 1px solid rgba(16,185,129,0.4); }
+    .badge-processing{ background: rgba(245,158,11,0.2);  color: var(--warning); border: 1px solid rgba(245,158,11,0.4); }
+    .badge-ingested  { background: rgba(6,182,212,0.2);   color: var(--accent3); border: 1px solid rgba(6,182,212,0.4); }
+    .badge-error     { background: rgba(239,68,68,0.2);   color: var(--danger);  border: 1px solid rgba(239,68,68,0.4); }
+
+    .asset-info {
+      padding: 12px 14px;
+    }
+
+    .asset-name {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+
+    .asset-meta {
+      font-size: 12px;
+      color: var(--text2);
+      display: flex;
+      gap: 8px;
+    }
+
+    .asset-meta span { display: flex; align-items: center; gap: 4px; }
+
+    /* ── Processing animation ────────────────────────── */
+    .processing-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--warning);
+    }
+
+    .pulse-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--warning);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* ── Detail Panel ────────────────────────────────── */
+    .detail-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: flex-start;
+      justify-content: flex-end;
+    }
+
+    .detail-overlay.open { display: flex; }
+
+    .detail-panel {
+      width: min(680px, 95vw);
+      height: 100vh;
+      background: var(--bg2);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      animation: slideIn 0.25s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to   { transform: translateX(0);   opacity: 1; }
+    }
+
+    .detail-header {
+      position: sticky;
+      top: 0;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+    }
+
+    .detail-header h2 { font-size: 16px; }
+
+    .close-btn {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: all var(--transition);
+    }
+
+    .close-btn:hover { background: var(--border2); color: var(--text); }
+
+    .detail-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── Platform Tabs ───────────────────────────────── */
+    .platform-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg3);
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .platform-tab {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text2);
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+
+    .platform-tab:hover { color: var(--text); }
+    .platform-tab.active-adobe  { background: var(--adobe-bg); color: #ff6666; border: 1px solid rgba(255,0,0,0.3); }
+    .platform-tab.active-ss     { background: var(--ss-bg);    color: #ff8c87; border: 1px solid rgba(232,66,60,0.3); }
+
+    /* ── Metadata Fields ─────────────────────────────── */
+    .meta-section { display: flex; flex-direction: column; gap: 14px; }
+
+    .meta-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 6px;
+    }
+
+    .meta-field input,
+    .meta-field textarea {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color var(--transition);
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    .meta-field input:focus,
+    .meta-field textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,99,255,0.12); }
+
+    /* ── Keywords ────────────────────────────────────── */
+    .keywords-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 48px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .keyword-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(108,99,255,0.12);
+      border: 1px solid rgba(108,99,255,0.25);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+      cursor: default;
+      transition: all var(--transition);
+    }
+
+    .keyword-tag:hover { background: rgba(108,99,255,0.2); }
+    .keyword-tag.top { background: rgba(108,99,255,0.25); border-color: rgba(108,99,255,0.5); }
+
+    .keyword-remove {
+      cursor: pointer;
+      opacity: 0.6;
+      font-size: 14px;
+      line-height: 1;
+      transition: opacity var(--transition);
+    }
+    .keyword-remove:hover { opacity: 1; }
+
+    .keyword-add-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .keyword-add-row input {
+      flex: 1;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      font-family: inherit;
+    }
+
+    .keyword-add-row input:focus { border-color: var(--accent); }
+
+    .keyword-count {
+      font-size: 12px;
+      color: var(--text3);
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    .keyword-count.warn { color: var(--warning); }
+    .keyword-count.ok   { color: var(--success); }
+
+    /* ── Detail Actions ──────────────────────────────── */
+    .detail-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 4px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Export Page ─────────────────────────────────── */
+    .export-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .export-platform-icon {
+      width: 56px; height: 56px;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .export-platform-icon.adobe { background: rgba(255,0,0,0.1); border: 1px solid rgba(255,0,0,0.2); }
+    .export-platform-icon.ss    { background: rgba(232,66,60,0.1); border: 1px solid rgba(232,66,60,0.2); }
+
+    .export-card h3 { font-size: 17px; margin-bottom: 4px; }
+    .export-card p  { font-size: 13px; color: var(--text2); }
+
+    .export-card .btn { margin-left: auto; }
+
+    /* ── Toast ───────────────────────────────────────── */
+    .toast-container {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 280px;
+      box-shadow: var(--shadow);
+      animation: toastIn 0.3s ease;
+      pointer-events: all;
+    }
+
+    .toast.success { border-left: 3px solid var(--success); }
+    .toast.error   { border-left: 3px solid var(--danger); }
+    .toast.info    { border-left: 3px solid var(--accent); }
+    .toast.warning { border-left: 3px solid var(--warning); }
+
+    @keyframes toastIn  { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateY(10px); } }
+
+    /* ── Empty State ─────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text2);
+    }
+
+    .empty-state .icon { font-size: 56px; margin-bottom: 16px; opacity: 0.5; }
+    .empty-state h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
+    .empty-state p  { font-size: 14px; max-width: 360px; margin: 0 auto; }
+
+    /* ── Progress Bar ────────────────────────────────── */
+    .progress-bar-wrap {
+      height: 4px;
+      background: var(--bg3);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent3));
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    .progress-bar.indeterminate {
+      width: 40% !important;
+      animation: indeterminate 1.5s ease-in-out infinite;
+    }
+
+    @keyframes indeterminate {
+      0%   { transform: translateX(-150%); }
+      100% { transform: translateX(350%); }
+    }
+
+    /* ── Upload Queue ────────────────────────────────── */
+    .upload-queue {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .queue-item {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .queue-thumb {
+      width: 44px; height: 44px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: var(--bg3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .queue-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+    .queue-info { flex: 1; min-width: 0; }
+    .queue-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .queue-size { font-size: 12px; color: var(--text2); }
+
+    /* ── Responsive ──────────────────────────────────── */
+    @media (max-width: 900px) {
+      .app-layout { grid-template-columns: 1fr; grid-template-rows: 64px auto 1fr; }
+      .sidebar { display: none; }
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 600px) {
+      .main { padding: 16px; }
+      .stats-bar { grid-template-columns: 1fr 1fr; }
+      .asset-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ── Utility ─────────────────────────────────────── */
+    .flex { display: flex; }
+    .gap-2 { gap: 8px; }
+    .gap-3 { gap: 12px; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .text-sm { font-size: 13px; }
+    .text-xs { font-size: 11px; }
+    .text-muted { color: var(--text2); }
+    .text-danger { color: var(--danger); }
+    .text-success { color: var(--success); }
+    .mt-2 { margin-top: 8px; }
+    .hidden { display: none !important; }
+
+    /* ── Category select ──────────────────────────────── */
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235c6278'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px !important;
+    }
+
+    /* ── Info row in detail ───────────────────────────── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .info-item {
+      background: var(--bg3);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .info-item .label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+    .info-item .value { font-size: 13px; font-weight: 600; }
+
+    /* ── Loading skeleton ────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg3) 0%, var(--border) 50%, var(--bg3) 100%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px;
+    }
+
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">✦</div>
+      StockMeta AI
+    </div>
+    <div class="header-right">
+      <div class="api-status" id="apiStatusBadge">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Pripájam...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <span class="nav-section-label">Pracovná plocha</span>
+    <div class="nav-item active" onclick="showPage('upload')">
+      <span class="icon">⬆️</span> Nahrať súbory
+    </div>
+    <div class="nav-item" onclick="showPage('assets')">
+      <span class="icon">🖼️</span> Moje súbory
+      <span class="nav-badge" id="assetCountBadge">0</span>
+    </div>
+    <div class="nav-item" onclick="showPage('export')">
+      <span class="icon">📦</span> Export CSV
+    </div>
+
+    <span class="nav-section-label" style="margin-top:8px">Nastavenia</span>
+    <div class="nav-item" onclick="showPage('settings')">
+      <span class="icon">⚙️</span> Nastavenia
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="api-key-section">
+        <label>API URL backendu</label>
+        <input type="text" id="apiUrlInput" value="http://localhost:8000" placeholder="http://localhost:8000" oninput="saveSettings()" />
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main" id="mainContent">
+
+    <!-- ═══ UPLOAD PAGE ═══ -->
+    <div class="page active" id="page-upload">
+
+      <div>
+        <h1 style="font-size:26px; margin-bottom:6px">Nahrať médiá</h1>
+        <p class="text-muted text-sm">Nahrajte fotografie alebo videá a AI automaticky vygeneruje metadata pre Adobe Stock a Shutterstock.</p>
+      </div>
+
+      <!-- Upload Zone -->
+      <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📸</div>
+        <h2>Pretiahnite sem súbory alebo kliknite</h2>
+        <p>Podpora hromadného nahrávania — vyberte viac súborov naraz</p>
+        <div class="formats">
+          <span class="format-tag">JPG</span>
+          <span class="format-tag">PNG</span>
+          <span class="format-tag">WEBP</span>
+          <span class="format-tag">MP4</span>
+          <span class="format-tag">MOV</span>
+          <span class="format-tag">AVI</span>
+        </div>
+        <div class="upload-btn-wrap">
+          <button class="btn btn-primary btn-lg" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
+            ✦ Vybrať súbory
+          </button>
+        </div>
+        <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.webp,.mp4,.mov,.avi" />
+      </div>
+
+      <!-- Hints Panel -->
+      <div class="hints-panel">
+        <h3>💡 Voliteľné nápovedy pre AI <span class="text-muted" style="font-weight:400; font-size:13px">(zlepšia presnosť metadát)</span></h3>
+        <div class="hints-grid">
+          <div class="hint-field">
+            <label>Lokalita / miesto</label>
+            <input type="text" id="hintLocation" placeholder="napr. Bratislava, Tatry..." />
+          </div>
+          <div class="hint-field">
+            <label>Typ fotenia</label>
+            <select id="hintShootType">
+              <option value="">— Vybrať —</option>
+              <option value="lifestyle">Lifestyle</option>
+              <option value="corporate">Firemné</option>
+              <option value="nature">Príroda</option>
+              <option value="food">Jedlo</option>
+              <option value="travel">Cestovanie</option>
+              <option value="product">Produkty</option>
+              <option value="architecture">Architektúra</option>
+              <option value="sport">Šport</option>
+              <option value="abstract">Abstraktné</option>
+            </select>
+          </div>
+          <div class="hint-field">
+            <label>Počet Ŀudí</label>
+            <input type="number" id="hintPeople" placeholder="0" min="0" max="100" />
+          </div>
+          <div class="hint-field">
+            <label>Prioritná platforma</label>
+            <select id="hintPlatform">
+              <option value="both">Obe platformy</option>
+              <option value="adobe">Adobe Stock</option>
+              <option value="shutterstock">Shutterstock</option>
+            </select>
+          </div>
+          <div class="hint-field">
+            <label>Zámer použitia</label>
+            <select id="hintIntent">
+              <option value="commercial">Komerčné</option>
+              <option value="editorial">Editoriálne</option>
+              <option value="unknown">Neznáme</option>
+            </select>
+          </div>
+          <div class="hint-field">
+            <label>Súhlasy dostupné</label>
+            <select id="hintReleases">
+              <option value="">— Neuvedené —</option>
+              <option value="true">Áno, mám súhlasy</option>
+              <option value="false">Nie</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload Queue -->
+      <div id="uploadQueueSection" class="hidden">
+        <div class="section-header" style="margin-bottom:12px">
+          <h2>Fronta nahrávania <span id="queueCount" class="text-muted" style="font-weight:400; font-size:14px"></span></h2>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm" onclick="clearQueue()">🗑 Vymazať</button>
+            <button class="btn btn-primary" id="startUploadBtn" onclick="startUpload()">⚡ Spustiť analýzu</button>
+          </div>
+        </div>
+        <div class="upload-queue" id="uploadQueue"></div>
+      </div>
+
+    </div>
+
+    <!-- ═══ ASSETS PAGE ═══ -->
+    <div class="page" id="page-assets">
+
+      <div class="section-header">
+        <div>
+          <h1 style="font-size:24px; margin-bottom:4px">Moje súbory</h1>
+          <p class="text-muted text-sm" id="assetsSubtitle">Načítavam...</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-ghost btn-sm" onclick="loadAssets()">↻ Obnoviť</button>
+          <button class="btn btn-primary btn-sm" onclick="showPage('upload')">+ Nahrať</button>
+        </div>
+      </div>
+
+      <div class="stats-bar" id="statsBar">
+        <div class="stat-card">
+          <div class="stat-icon purple">📁</div>
+          <div><div class="stat-value" id="statTotal">—</div><div class="stat-label">Celkovo</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">✅</div>
+          <div><div class="stat-value" id="statComplete">—</div><div class="stat-label">Hotové</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">⏳</div>
+          <div><div class="stat-value" id="statProcessing">—</div><div class="stat-label">Spracovávajú se</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon cyan">🖼️</div>
+          <div><div class="stat-value" id="statImages">—</div><div class="stat-label">Obrázky</div></div>
+        </div>
+      </div>
+
+      <div id="assetGrid" class="asset-grid">
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="icon">🖼️</div>
+          <h3>Žiadne súbory</h3>
+          <p>Nahrajte prvé fotografie alebo videá a AI vygeneruje metadata pre stock platformy.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══ EXPORT PAGE ═══ -->
+    <div class="page" id="page-export">
+
+      <div>
+        <h1 style="font-size:24px; margin-bottom:6px">Export CSV</h1>
+        <p class="text-muted text-sm">Stiahnite metadata vo formáte CSV pre hromadné nahranie na Adobe Stock alebo Shutterstock.</p>
+      </div>
+
+      <div class="export-card">
+        <div class="export-platform-icon adobe">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/0/0" alt="" style="display:none" />
+          🅰
+        </div>
+        <div>
+          <h3>Adobe Stock</h3>
+          <p>Formát: Filename, Title, Keywords, Category, Description, ReleaseInfo</p>
+          <p class="text-xs text-muted" style="margin-top:4px">Kľúčové slová oddelené bodkočiarkou · 5–50 kľúčových slov</p>
+        </div>
+        <button class="btn btn-primary" onclick="exportCSV('adobe')">⬇ Stiahnuť Adobe CSV</button>
+      </div>
+
+      <div class="export-card">
+        <div class="export-platform-icon ss">🟥</div>
+        <div>
+          <h3>Shutterstock</h3>
+          <p>Formát: Filename, Description, Keywords, Categories, Editorial</p>
+          <p class="text-xs text-muted" style="margin-top:4px">Kľúčové slová oddelené čiarkou · 7–50 kľúčových slov</p>
+        </div>
+        <button class="btn btn-primary" onclick="exportCSV('shutterstock')">⬇ Stiahnuť Shutterstock CSV</button>
+      </div>
+
+      <div class="hints-panel">
+        <h3 style="margin-bottom:12px">ℹ️ Export konkrétnych súborov</h3>
+        <p class="text-sm text-muted" style="margin-bottom:12px">Exportujte iba vybrané hotové súbory zadaním ich ID (oddelených čiarkou):</p>
+        <div class="flex gap-2">
+          <input type="text" id="exportAssetIds" placeholder="ID súborov oddelené čiarkou (prázdne = všetky)" style="flex:1; background:var(--bg3); border:1px solid var(--border2); border-radius:8px; padding:10px 12px; font-size:13px; color:var(--text); outline:none; font-family:inherit;" />
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══ SETTINGS PAGE ═══ -->
+    <div class="page" id="page-settings">
+      <div>
+        <h1 style="font-size:24px; margin-bottom:6px">Nastavenia</h1>
+        <p class="text-muted text-sm">Konfigurácia pripojenia k backendu a preferencie.</p>
+      </div>
+
+      <div class="hints-panel">
+        <h3 style="margin-bottom:16px">🔌 Pripojenie k backendu</h3>
+        <div class="hints-grid">
+    2     <div class="hint-field" style="grid-column: 1/-1">
+            <label>URL backendu (FastAPI)</label>
+            <input type="text" id="apiUrlFull" value="http://localhost:8000" placeholder="http://localhost:8000" oninput="document.getElementById('apiUrlInput').value=this.value; saveSettings()" />
+          </div>
+        </div>
+        <div class="flex gap-2 mt-2">
+          <button class="btn btn-ghost btn-sm" onclick="checkApiHealth()">🔍 Otestovať pripojenie</button>
+        </div>
+        <p class="text-xs text-muted mt-2">Backend beží na <code style="background:var(--bg3); padding:2px 6px; border-radius:4px;">http://localhost:8000</code> po spustení Docker Compose. API dokumentácia na <code style="background:var(--bg3); padding:2px 6px; border-radius:4px;">http://localhost:8000/docs</code></p>
+      </div>
+
+      <div class="hints-panel">
+        <h3 style="margin-bottom:12px">⚡ Rýchly štart backendu</h3>
+        <div style="background:var(--bg); border-radius:8px; padding:16px; font-family:monospace; font-size:13px; color:var(--accent3); border:1px solid var(--border); line-height:2;">
+          <span style="color:var(--text3)"># Prejdite do priečinka projektu</span><br/>
+          cd stock-metadata-tool<br/>
+          <span style="color:var(--text3)"># Skopírujte a nastavte env</span><br/>
+          cp .env.example .env<br/>
+          <span style="color:var(--text3)"># Spustite Docker Compose</span><br/>
+          docker-compose up -d<br/>
+          <span style="color:var(--text3)"># API beží na http://localhost:8000</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Detail Panel ── -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail(event)">
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-header">
+      <div>
+        <h2 id="detailTitle">Detail súboru</h2>
+        <p class="text-xs text-muted" id="detailSubtitle"></p>
+      </div>
+      <button class="close-btn" onclick="closeDetailPanel()">✕</button>
+    </div>
+    <div class="detail-body" id="detailBody">
+      <div style="text-align:center; padding:40px; color:var(--text2)">Načítavam...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast Container ── -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// Config & State
+// ─────────────────────────────────────────────
+let API_URL = localStorage.getItem('apiUrl') || 'http://localhost:8000';
+let pendingFiles = [];
+let assets = [];
+let pollingInterval = null;
+let currentDetailAssetId = null;
+let currentDetailPlatform = 'adobe';
+
+document.getElementById('apiUrlInput').value = API_URL;
+document.getElementById('apiUrlFull') && (document.getElementById('apiUrlFull').value = API_URL);
+
+function saveSettings() {
+  API_URL = document.getElementById('apiUrlInput').value || 'http://localhost:8000';
+  if (document.getElementById('apiUrlFull')) document.getElementById('apiUrlFull').value = API_URL;
+  localStorage.setItem('apiUrl', API_URL);
+}
+
+// ─────────────────────────────────────────────
+// Navigation
+// ─────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const items = document.querySelectorAll('.nav-item');
+  items.forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes(name)) n.classList.add('active');
+  });
+  if (name === 'assets') loadAssets();
+}
+
+// ─────────────────────────────────────────────
+// API Health
+// ─────────────────────────────────────────────
+async function checkApiHealth() {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  try {
+    const r = await fetch(API_URL + '/health', { signal: AbortSignal.timeout(4000) });
+    if (r.ok) {
+      dot.className = 'status-dot online';
+      txt.textContent = 'Backend online';
+      toast('Backend je online ✅', 'success');
+      return true;
+    }
+  } catch (e) {}
+  dot.className = 'status-dot offline';
+  txt.textContent = 'Backend offline';
+  return false;
+}
+
+// ─────────────────────────────────────────────
+// Drag & Drop
+// ─────────────────────────────────────────────
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  handleFiles(Array.from(e.dataTransfer.files));
+});
+fileInput.addEventListener('change', () => handleFiles(Array.from(fileInput.files)));
+
+function handleFiles(files) {
+  const allowed = ['image/jpeg','image/png','image/webp','video/mp4','video/quicktime','video/x-msvideo'];
+  const valid = files.filter(f => allowed.includes(f.type) || /\.(jpg|jpeg|png|webp|mp4|mov|avi)$/i.test(f.name));
+  if (!valid.length) { toast('Nepodporovaný formát súboru', 'error'); return; }
+  pendingFiles = [...pendingFiles, ...valid];
+  renderQueue();
+  fileInput.value = '';
+}
+
+function renderQueue() {
+  const section = document.getElementById('uploadQueueSection');
+  const qEl = document.getElementById('uploadQueue');
+  const count = document.getElementById('queueCount');
+  if (!pendingFiles.length) { section.classList.add('hidden'); return; }
+  section.classList.remove('hidden');
+  count.textContent = `(${pendingFiles.length} súborov)`;
+  qEl.innerHTML = '';
+  pendingFiles.forEach((f, i) => {
+    const isImage = f.type.startsWith('image/');
+    const div = document.createElement('div');
+    div.className = 'queue-item';
+    div.innerHTML = `
+      <div class="queue-thumb" id="thumb-${i}">${isImage ? '🖼️' : '🎬'}</div>
+      <div class="queue-info">
+        <div class="queue-name">${escHtml(f.name)}</div>
+        <div class="queue-size">${formatSize(f.size)} · ${isImage ? 'Obrázok' : 'Video'}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="removeFromQueue(${i})">✕</button>
+    `;
+    qEl.appendChild(div);
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const thumb = document.getElementById('thumb-' + i);
+        if (thumb) thumb.innerHTML = `<img src="${e.target.result}" />`;
+      };
+      reader.readAsDataURL(f);
+    }
+  });
+}
+
+function removeFromQueue(i) {
+  pendingFiles.splice(i, 1);
+  renderQueue();
+}
+
+function clearQueue() {
+  pendingFiles = [];
+  renderQueue();
+}
+
+// ─────────────────────────────────────────────
+// Upload & Process
+// ─────────────────────────────────────────────
+function buildHints() {
+  const hints = {};
+  const loc = document.getElementById('hintLocation').value.trim();
+  const shoot = document.getElementById('hintShootType').value;
+  const people = document.getElementById('hintPeople').value;
+  const platform = document.getElementById('hintPlatform').value;
+  const intent = document.getElementById('hintIntent').value;
+  const releases = document.getElementById('hintReleases').value;
+  if (loc) hints.location = loc;
+  if (shoot) hints.shoot_type = shoot;
+  if (people !== '') hints.people_count = parseInt(people);
+  if (platform) hints.priority_platform = platform;
+  if (intent) hints.intent = intent;
+  if (releases !== '') hints.releases_available = releases === 'true';
+  return Object.keys(hints).length ? hints : null;
+}
+
+async function startUpload() {
+  if (!pendingFiles.length) return;
+  const btn = document.getElementById('startUploadBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Nahrávam...';
+
+  const hints = buildHints();
+  let success = 0, failed = 0;
+
+  for (let i = 0; i < pendingFiles.length; i++) {
+    const f = pendingFiles[i];
+    const fd = new FormData();
+    fd.append('file', f);
+    if (hints) fd.append('hints', JSON.stringify(hints));
+    try {
+      const r = await fetch(API_URL + '/api/v1/assets/upload', { method: 'POST', body: fd });
+      if (r.ok) { success++; } else { failed++; }
+    } catch (e) { failed++; }
+    btn.textContent = `⏳ ${i+1}/${pendingFiles.length} nahraných...`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = '⚡ Spustiť analízu';
+
+  if (success > 0) {
+    toast(`✅ ${success} súborov nahraných — AI generuje metadata...`, 'success');
+    pendingFiles = [];
+    renderQueue();
+    showPage('assets');
+    startPolling();
+  }
+  if (failed > 0) toast(`❌ ${failed} súborov sa nepodarilo nahrať`, 'error');
+}
+
+// ─────────────────────────────────────────────
+// Asset List
+// ─────────────────────────────────────────────
+async function loadAssets() {
+  try {
+    const r = await fetch(API_URL + '/api/v1/assets/?page=1&page_size=100');
+    if (!r.ok) throw new Error();
+    const data = await r.json();
+    assets = data.items || [];
+    renderAssets();
+    updateStats();
+    document.getElementById('assetCountBadge').textContent = assets.length;
+    document.getElementById('assetsSubtitle').textContent = `${assets.length} súborov celkovo`;
+  } catch (e) {
+    document.getElementById('assetGrid').innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="icon">⚠️</div>
+        <h3>Chyba pripojenia</h3>
+        <p>Skontrolujte, či backend beží na <strong>${API_URL}</strong> a skúste znovu.</p>
+      </div>`;
+  }
+}
+
+function renderAssets() {
+  const grid = document.getElementById('assetGrid');
+  if (!assets.length) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="icon">🖼️</div>
+        <h3>Žiadne súbory</h3>
+        <p>Nahrajte prvé fotografie alebo videá a AI vygeneruje metadata pre stock platformy.</p>
+      </div>`;
+    return;
+  }
+  grid.innerHTML = assets.map(a => {
+    const isImg = a.asset_type === 'image';
+    const statusLabel = { complete:'Hotové', ingested:'V poradí', processing:'Spracováva sa', generating:'Generuje', error:'Chyba' }[a.status] || a.status;
+    const badgeClass = { complete:'badge-complete', ingested:'badge-ingested', processing:'badge-processing', generating:'badge-processing', error:'badge-error' }[a.status] || 'badge-ingested';
+    const processingRow = (a.status === 'processing' || a.status === 'generating' || a.status === 'ingested') ? `
+      <div class="processing-indicator"><div class="pulse-dot"></div>Spracováva sa</div>
+    ` : '';
+    const dim = a.width && a.height ? `${a.width}×${a.height}` : '';
+    const size = a.file_size_bytes ? formatSize(a.file_size_bytes) : '';
+
+    return `
+      <div class="asset-card" onclick="openDetail('${a.asset_id}')">
+        <div class="asset-thumb">
+          <span>${isImg ? '🖼️' : '🎬'}</span>
+          <div class="overlay"></div>
+          <span class="asset-type-badge">${isImg ? 'IMG' : 'VID'}</span>
+          <span class="asset-status-badge ${badgeClass}">${statusLabel}</span>
+        </div>
+        <div class="asset-info">
+          <div class="asset-name" title="${escHtml(a.filename)}">${escHtml(a.filename)}</div>
+          <div class="asset-meta">
+            ${dim ? `<span>📐 ${dim}</span>` : ''}
+            ${size ? `<span>💾 ${size}</span>` : ''}
+          </div>
+          ${processingRow}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateStats() {
+  const total = assets.length;
+  const complete = assets.filter(a => a.status === 'complete').length;
+  const processing = assets.filter(a => ['ingested','processing','generating'].includes(a.status)).length;
+  const images = assets.filter(a => a.asset_type === 'image').length;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statComplete').textContent = complete;
+  document.getElementById('statProcessing').textContent = processing;
+  document.getElementById('statImages').textContent = images;
+}
+
+// ─────────────────────────────────────────────
+// Polling
+// ─────────────────────────────────────────────
+function startPolling() {
+  if (pollingInterval) return;
+  pollingInterval = setInterval(async () => {
+    await loadAssets();
+    const stillProcessing = assets.some(a => ['ingested','processing','generating'].includes(a.status));
+    if (!stillProcessing) { clearInterval(pollingInterval); pollingInterval = null; }
+  }, 4000);
+}
+
+// ─────────────────────────────────────────────
+// Detail Panel
+// ─────────────────────────────────────────────
+async function openDetail(assetId) {
+  currentDetailAssetId = assetId;
+  currentDetailPlatform = 'adobe';
+  document.getElementById('detailOverlay').classList.add('open');
+  document.getElementById('detailBody').innerHTML = `<div style="text-align:center; padding:40px; color:var(--text2)">⏳ Načítavam...</div>`;
+
+  const asset = assets.find(a => a.asset_id === assetId);
+  if (asset) {
+    document.getElementById('detailTitle').textContent = asset.filename;
+    document.getElementById('detailSubtitle').textContent = asset.asset_type === 'image' ? 'Obrázok' : 'Video';
+  }
+
+  if (asset && asset.status !== 'complete') {
+    renderDetailProcessing(asset);
+    return;
+  }
+
+  try {
+    const r = await fetch(API_URL + '/api/v1/metadata/' + assetId);
+    if (!r.ok) {
+      if (r.status === 409) { renderDetailProcessing(asset); return; }
+      throw new Error(await r.text());
+    }
+    const data = await r.json();
+    renderDetailMetadata(asset, data);
+  } catch (e) {
+    document.getElementById('detailBody').innerHTML = `<div style="text-align:center; padding:40px; color:var(--danger)">Chyba pri načítaní metadát.</div>`;
+  }
+}
+
+function renderDetailProcessing(asset) {
+  document.getElementById('detailBody').innerHTML = `
+    <div style="text-align:center; padding:60px 20px; color:var(--text2)">
+      <div style="font-size:56px; margin-bottom:16px">🤖</div>
+      <h3 style="color:var(--text); margin-bottom:8px">AI generuje metadata...</h3>
+      <p style="font-size:13px; margin-bottom:24px">Probíha analýza obsahu a generovanie metadát pre Adobe Stock a Shutterstock.</p>
+      <div class="progress-bar-wrap" style="max-width:300px; margin:0 auto">
+        <div class="progress-bar indeterminate"></div>
+      </div>
+      <p class="text-xs text-muted" style="margin-top:12px">Odhadovaný čas: ~15–60 sekúnd</p>
+    </div>
+    <div class="detail-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openDetail('${asset.asset_id}')">↻ Obnoviť</button>
+    </div>
+  `;
+}
+
+function renderDetailMetadata(asset, data) {
+  const a = data.adobe;
+  const s = data.shutterstock;
+  const dim = asset && asset.width ? `${asset.width}×${asset.height} px` : '—';
+  const size = asset && asset.file_size_bytes ? formatSize(asset.file_size_bytes) : '—';
+
+  document.getElementById('detailBody').innerHTML = `
+    <div class="info-grid">
+      <div class="info-item"><div class="label">Typ</div><div class="value">${data.asset_type === 'image' ? '🖼 Obrázok' : '🎬 Video'}</div></div>
+      <div class="info-item"><div class="label">Rozmer</div><div class="value">${dim}</div></div>
+      <div class="info-item"><div class="label">Veľkosť</div><div class="value">${size}</div></div>
+    </div>
+
+    <div class="platform-tabs">
+      <button class="platform-tab ${a ? 'active-adobe' : ''}" id="tabAdobe" onclick="switchPlatformTab('adobe')">
+        🅰 Adobe Stock
+      </button>
+      <button class="platform-tab" id="tabSS" onclick="switchPlatformTab('shutterstock')">
+        🟥 Shutterstock
+      </button>
+    </div>
+
+    <div id="metaPanelAdobe" class="meta-section">
+      ${a ? renderMetaFields(a, 'adobe') : '<p class="text-muted text-sm">Metadata pre Adobe Stock nie sú dostupné.</p>'}
+    </div>
+    <div id="metaPanelSS" class="meta-section hidden">
+      ${s ? renderMetaFields(s, 'shutterstock') : '<p class="text-muted text-sm">Metadata pre Shutterstock nie sú dostupné.</p>'}
+    </div>
+
+    <div class="detail-actions">
+      <button class="btn btn-primary btn-sm" onclick="saveMetadata()">💾 Uložiť zmeny</button>
+      <button class="btn btn-ghost btn-sm" onclick="regenerateMetadata('${asset.asset_id}')">🔄 Regenerovať</button>
+      <button class="btn btn-success btn-sm" onclick="exportCSV('adobe', ['${asset.asset_id}'])">⬇ Adobe CSV</button>
+      <button class="btn btn-success btn-sm" onclick="exportCSV('shutterstock', ['${asset.asset_id}'])">⬇ SS CSV</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteAsset('${asset.asset_id}')">🗑 Vymazať</button>
+    </div>
+  `;
+}
+
+function renderMetaFields(m, platform) {
+  const kws = (m.keywords_ranked || []);
+  const maxKw = platform === 'adobe' ? 50 : 50;
+  const targetKw = platform === 'adobe' ? 35 : 30;
+  const countClass = kws.length < 10 ? 'warn' : kws.length <= maxKw ? 'ok' : 'warn';
+  const top10 = m.top10_keywords || kws.slice(0, 10);
+
+  return `
+    <div class="meta-field">
+      <label>Názov (Title)</label>
+      <input type="text" id="input-title-${platform}" value="${escAttr(m.title || '')}" maxlength="${platform === 'adobe' ? 80 : 200}" />
+      <p class="text-xs text-muted mt-2">${platform === 'adobe' ? 'Adobe: Title Case, 5–80 znakov' : 'Shutterstock: Celá veta so slovesom, min. 5 slov'}</p>
+    </div>
+    <div class="meta-field">
+      <label>Popis (Description)</label>
+      <textarea id="input-desc-${platform}" rows="3">${escHtml(m.description || '')}</textarea>
+    </div>
+    ${platform === 'adobe' && top10.length ? `
+    <div class="meta-field">
+      <label>Top 10 kľúčových slov <span class="text-xs text-muted">(najväčšia váha pri vyhľadávaní)</span></label>
+      <div class="keywords-container">
+        ${top10.map(k => `<span class="keyword-tag top">${escHtml(k)}</span>`).join('')}
+      </div>
+    </div>` : ''}
+    <div class="meta-field">
+      <label>Všetky kľúčové slová</label>
+      <div class="keywords-container" id="kw-container-${platform}">
+        ${kws.map((k, i) => `<span class="keyword-tag" data-kw="${escAttr(k)}">${escHtml(k)}<span class="keyword-remove" onclick="removeKeyword(this, '${platform}')">×</span></span>`).join('')}
+      </div>
+      <div class="keyword-add-row">
+        <input type="text" id="kw-input-${platform}" placeholder="Pridať kľúčové slovo..." onkeydown="if(event.key==='Enter') addKeyword('${platform}')" />
+        <button class="btn btn-ghost btn-sm" onclick="addKeyword('${platform}')">+ Pridať</button>
+      </div>
+      <div class="keyword-count ${countClass}" id="kw-count-${platform}">
+        ${kws.length} / ${maxKw} kľúčových slov (cieľ: ${targetKw})
+      </div>
+    </div>
+    <div class="meta-field">
+      <label>Kategória</label>
+      <input type="text" id="input-cat-${platform}" value="${escAttr(m.category_primary || '')}" placeholder="napr. Nature, Business, Technology..." />
+    </div>
+  `;
+}
+
+function switchPlatformTab(platform) {
+  currentDetailPlatform = platform;
+  document.getElementById('tabAdobe').className = 'platform-tab' + (platform === 'adobe' ? ' active-adobe' : '');
+  document.getElementById('tabSS').className = 'platform-tab' + (platform === 'shutterstock' ? ' active-ss' : '');
+  document.getElementById('metaPanelAdobe').classList.toggle('hidden', platform !== 'adobe');
+  document.getElementById('metaPanelSS').classList.toggle('hidden', platform !== 'shutterstock');
+}
+
+// ─────────────────────────────────────────────
+// Keywords Management
+// ─────────────────────────────────────────────
+function removeKeyword(el, platform) {
+  el.parentElement.remove();
+  updateKeywordCount(platform);
+}
+
+function addKeyword(platform) {
+  const input = document.getElementById('kw-input-' + platform);
+  const val = input.value.trim();
+  if (!val) return;
+  const container = document.getElementById('kw-container-' + platform);
+  const tag = document.createElement('span');
+  tag.className = 'keyword-tag';
+  tag.dataset.kw = val;
+  tag.innerHTML = `${escHtml(val)}<span class="keyword-remove" onclick="removeKeyword(this, '${platform}')">×</span>`;
+  container.appendChild(tag);
+  input.value = '';
+  updateKeywordCount(platform);
+}
+
+function updateKeywordCount(platform) {
+  const container = document.getElementById('kw-container-' + platform);
+  if (!container) return;
+  const count = container.querySelectorAll('.keyword-tag').length;
+  const maxKw = 50;
+  const targetKw = platform === 'adobe' ? 35 : 30;
+  const el = document.getElementById('kw-count-' + platform);
+  if (el) {
+    el.textContent = `${count} / ${maxKw} kľúčových slov (cieľ: ${targetKw})`;
+    el.className = 'keyword-count ' + (count < 10 ? 'warn' : count <= maxKw ? 'ok' : 'warn');
+  }
+}
+
+function getKeywords(platform) {
+  const container = document.getElementById('kw-container-' + platform);
+  if (!container) return [];
+  return Array.from(container.querySelectorAll('.keyword-tag')).map(t => t.dataset.kw || t.textContent.replace('×','').trim());
+}
+
+// ─────────────────────────────────────────────
+// Save / Regenerate / Delete
+// ─────────────────────────────────────────────
+async function saveMetadata() {
+  const p = currentDetailPlatform;
+  const payload = {};
+  const titleEl = document.getElementById('input-title-' + p);
+  const descEl = document.getElementById('input-desc-' + p);
+  const catEl = document.getElementById('input-cat-' + p);
+  if (titleEl) payload.title = titleEl.value;
+  if (descEl) payload.description = descEl.value;
+  if (catEl) payload.category_primary = catEl.value;
+  payload.keywords_ranked = getKeywords(p);
+
+  try {
+    const r = await fetch(API_URL + '/api/v1/metadata/' + currentDetailAssetId + '/' + p, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (r.ok) toast('✅ Metadata uložené', 'success');
+    else toast('❌ Chyba pri ukladaní', 'error');
+  } catch (e) { toast('❌ Chyba pripojenia', 'error'); }
+}
+
+async function regenerateMetadata(assetId) {
+  try {
+    const r = await fetch(API_URL + '/api/v1/metadata/' + assetId + '/regenerate', { method: 'POST' });
+    if (r.ok) {
+      toast('🔄 Regenerovanie spustené...', 'info');
+      setTimeout(() => openDetail(assetId), 2000);
+    } else toast('❌ Chyba pri regenerovaní', 'error');
+  } catch (e) { toast('❌ Chyba pripojenia', 'error'); }
+}
+
+async function deleteAsset(assetId) {
+  if (!confirm('Naozaj chcete vymazať tento súbor a všetky jeho metadata?')) return;
+  try {
+    const r = await fetch(API_URL + '/api/v1/assets/' + assetId, { method: 'DELETE' });
+    if (r.status === 204) {
+      toast('🗑 Súbor vymazaný', 'info');
+      closeDetailPanel();
+      loadAssets();
+    } else toast('❌ Chyba pri mazaní', 'error');
+  } catch (e) { toast('❌ Chyba pripojenia', 'error'); }
+}
+
+// ─────────────────────────────────────────────
+// Export CSV
+// ─────────────────────────────────────────────
+async function exportCSV(platform, assetIds) {
+  const idsFromInput = document.getElementById('exportAssetIds') ? document.getElementById('exportAssetIds').value.trim() : '';
+  const ids = assetIds || (idsFromInput ? idsFromInput.split(',').map(s=>s.trim()).filter(Boolean) : null);
+
+  let url = API_URL + '/api/v1/export/csv?platform=' + platform;
+  if (ids && ids.length) ids.forEach(id => url += '&asset_ids=' + encodeURIComponent(id));
+
+  try {
+    const r = await fetch(url, { method: 'POST' });
+    if (!r.ok) { const t = await r.text(); toast('❌ ' + t, 'error'); return; }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const name = platform === 'adobe' ? `adobe_stock_${dateStr()}.csv` : `shutterstock_${dateStr()}.csv`;
+    a.download = name;
+    a.click();
+    toast(`⬇ ${platform === 'adobe' ? 'Adobe Stock' : 'Shutterstock'} CSV stiahnuté`, 'success');
+  } catch (e) { toast('❌ Chyba pri exporte', 'error'); }
+}
+
+// ─────────────────────────────────────────────
+// Detail Panel helpers
+// ─────────────────────────────────────────────
+function closeDetail(e) {
+  if (e.target === document.getElementById('detailOverlay')) closeDetailPanel();
+}
+function closeDetailPanel() {
+  document.getElementById('detailOverlay').classList.remove('open');
+  currentDetailAssetId = null;
+}
+
+// ─────────────────────────────────────────────
+// Toast
+// ─────────────────────────────────────────────
+function toast(msg, type = 'info') {
+  const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${icons[type] || 'ℹ️'}</span> <span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => {
+    el.style.animation = 'toastOut 0.3s ease forwards';
+    setTimeout(() => el.remove(), 300);
+  }, 3500);
+}
+
+// ─────────────────────────────────────────────
+// Utilities
+// ─────────────────────────────────────────────
+function formatSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escAttr(s) {
+  return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function dateStr() {
+  return new Date().toISOString().slice(0,10).replace(/-/g,'');
+}
+
+// ─────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────
+checkApiHealth();
+setInterval(checkApiHealth, 30000);
+</script>
+</body>
+</html>
